@@ -363,6 +363,12 @@ function PlayerView({user, onLogout}){
     setChar(c=>({...c,saving_throw_proficiencies:profs}));
   };
 
+  const adjustApproval=async(comp,delta)=>{
+    const newVal=Math.max(0,Math.min(100,(comp.approval||0)+delta));
+    setCampData(cd=>({...cd,companion_approval:cd.companion_approval.map(c=>c.id===comp.id?{...c,approval:newVal}:c)}));
+    await supabase.from("companion_approval").update({approval:newVal,updated_at:new Date().toISOString()}).eq("id",comp.id);
+  };
+
   const saveInv=async()=>{
     setSaving(true);
     const obj={...invVals,quantity:parseInt(invVals.quantity)||1};
@@ -563,13 +569,17 @@ function PlayerView({user, onLogout}){
           {!campData.companion_approval.length?<EmptyState msg="Nessun compagno ancora"/>:
           campData.companion_approval.map(c=>(
             <div key={c.id} style={{background:C.bg2,border:`1px solid ${C.border}`,borderRadius:12,padding:"14px 16px",marginBottom:10}}>
-              <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
+              <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
                 <span style={{fontSize:18}}>{partyIcon(c.name)}</span>
                 <span style={{fontFamily:"'Cinzel',serif",fontSize:14,fontWeight:600,color:C.text,flex:1}}>{c.name}</span>
                 <span style={{fontSize:13,fontWeight:700,color:approvalColor(c.approval)}}>{c.approval}%</span>
               </div>
-              <div style={{height:8,background:C.bg3,borderRadius:4,overflow:"hidden"}}>
-                <div style={{height:"100%",width:`${c.approval}%`,background:approvalColor(c.approval),borderRadius:4,transition:"width .3s"}}/>
+              <div style={{display:"flex",alignItems:"center",gap:10}}>
+                <button onClick={()=>adjustApproval(c,-5)} style={{background:C.bg3,border:`1px solid ${C.border2}`,borderRadius:8,width:32,height:32,color:"#f87171",fontSize:16,cursor:"pointer",flexShrink:0}}>−</button>
+                <div style={{flex:1,height:8,background:C.bg3,borderRadius:4,overflow:"hidden"}}>
+                  <div style={{height:"100%",width:`${c.approval}%`,background:approvalColor(c.approval),borderRadius:4,transition:"width .3s"}}/>
+                </div>
+                <button onClick={()=>adjustApproval(c,5)} style={{background:C.bg3,border:`1px solid ${C.border2}`,borderRadius:8,width:32,height:32,color:"#4ade80",fontSize:16,cursor:"pointer",flexShrink:0}}>+</button>
               </div>
             </div>
           ))}
