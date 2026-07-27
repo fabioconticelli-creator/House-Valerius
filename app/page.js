@@ -2324,6 +2324,9 @@ export default function App(){
   const [rulesEditing,setRulesEditing]=useState(false);
   const [rulesDraft,setRulesDraft]=useState("");
   const [rulesSaving,setRulesSaving]=useState(false);
+  const [companionModal,setCompanionModal]=useState(null);
+  const [companionNameDraft,setCompanionNameDraft]=useState("");
+  const [companionSaving,setCompanionSaving]=useState(false);
 
   const isAuth = user?.role==="dm";
   const TITLES={sessioni:"Sessioni",npc:"NPC",mappa:"Mappa",gilda:"Gilda",fazioni:"Fazioni",mondo:"Fogli del Mondo",cronologia:"Cronologia",mercato:"Mercato",bestiario:"Bestiario Scoperto",gradimento:"Gradimento"};
@@ -2435,9 +2438,6 @@ export default function App(){
     await supabase.from("companion_approval").update({approval:newVal,updated_at:new Date().toISOString()}).eq("id",comp.id);
     loadAll();
   };
-  const [companionModal,setCompanionModal]=useState(null);
-  const [companionNameDraft,setCompanionNameDraft]=useState("");
-  const [companionSaving,setCompanionSaving]=useState(false);
   const saveCompanion=async()=>{
     if(!companionNameDraft.trim())return;
     setCompanionSaving(true);
