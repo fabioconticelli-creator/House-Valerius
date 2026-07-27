@@ -36,7 +36,6 @@ const partyIcon = name => {
   if(n.includes("lobdlin")||n.includes("lobdi"))return "🕊️";
   return "⚔️";
 };
-const approvalColor = v => v>=66?"#4ade80":v>=33?"#facc15":"#f87171";
 const formatLongText = text => {
   if(!text) return [];
   const re=/((?:\p{Emoji_Presentation}|\p{Extended_Pictographic})\s*)?([A-ZÀÁÂÃÄÅÈÉÊËÌÍÎÏÒÓÔÕÖÙÚÛÜ]{4,}(?:\s[A-ZÀÁÂÃÄÅÈÉÊËÌÍÎÏÒÓÔÕÖÙÚÛÜ]{4,})*)\s*/gu;
@@ -259,7 +258,7 @@ function PlayerView({user, onLogout}){
   const [avatarPreview, setAvatarPreview] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [view, setView] = useState("sessioni");
-  const [campData, setCampData] = useState({sessioni:[],npc:[],gilda:[],fazioni:[],mondo:[],cronologia:[],map_pins:[],map_config:null,guild_rules:null,companion_approval:[]});
+  const [campData, setCampData] = useState({sessioni:[],npc:[],gilda:[],fazioni:[],mondo:[],cronologia:[],map_pins:[],map_config:null,guild_rules:null});
   const [npcOpen, setNpcOpen] = useState(null);
   const [allPlayers, setAllPlayers] = useState([]);
   const [selectedCompagno, setSelectedCompagno] = useState(null);
@@ -268,7 +267,7 @@ function PlayerView({user, onLogout}){
   const charTabs = ["scheda","inventario","famigli","note sessione"];
 
   const load = async () => {
-    const [charRes, invRes, notesRes, npcs, sessions, factions, locations, timeline, map_pins, map_config, bestiary, mercatoRes2, guildRulesRes, companionApprovalRes] = await Promise.all([
+    const [charRes, invRes, notesRes, npcs, sessions, factions, locations, timeline, map_pins, map_config, bestiary, mercatoRes2, guildRulesRes] = await Promise.all([
       supabase.from("player_characters").select("*").eq("player_id", user.userId).maybeSingle(),
       supabase.from("player_inventory").select("*").eq("player_id", user.userId).order("created_at"),
       supabase.from("player_session_notes").select("*").eq("player_id", user.userId).order("created_at",{ascending:false}),
@@ -282,7 +281,6 @@ function PlayerView({user, onLogout}){
         supabase.from("bestiary").select("*").order("name"),
         supabase.from("mercato").select("*").order("name"),
         supabase.from("guild_rules").select("*").limit(1),
-        supabase.from("companion_approval").select("*").order("sort_order"),
     ]);
     if(charRes.data){
       const c = charRes.data;
@@ -302,7 +300,6 @@ function PlayerView({user, onLogout}){
       bestiario:bestiary.data||[],
       mercato:mercatoRes2.data||[],
       guild_rules:guildRulesRes.data?.[0]||null,
-      companion_approval:companionApprovalRes.data||[],
     });
     const playersRes = await supabase.from("player_characters").select("*").order("name");
     const parsed = (playersRes.data||[]).map(p=>{
@@ -363,12 +360,6 @@ function PlayerView({user, onLogout}){
     setChar(c=>({...c,saving_throw_proficiencies:profs}));
   };
 
-  const adjustApproval=async(comp,delta)=>{
-    const newVal=Math.max(0,Math.min(100,(comp.approval||0)+delta));
-    setCampData(cd=>({...cd,companion_approval:cd.companion_approval.map(c=>c.id===comp.id?{...c,approval:newVal}:c)}));
-    await supabase.from("companion_approval").update({approval:newVal,updated_at:new Date().toISOString()}).eq("id",comp.id);
-  };
-
   const saveInv=async()=>{
     setSaving(true);
     const obj={...invVals,quantity:parseInt(invVals.quantity)||1};
@@ -421,7 +412,6 @@ function PlayerView({user, onLogout}){
   const partyNavItems=[
     {v:"bastioni",icon:"⚓",label:"Bastioni"},
     {v:"bestiario",icon:"🐉",label:"Bestiario Scoperto"},
-    {v:"gradimento",icon:"❤️",label:"Gradimento"},
   ];
 
   if(loading) return <div style={{minHeight:"100vh",background:C.bg,display:"flex",alignItems:"center",justifyContent:"center",color:C.textDim,fontSize:14}}>Caricamento...</div>;
@@ -560,31 +550,6 @@ function PlayerView({user, onLogout}){
         </div>;
       }
       case "bestiario": return <PlayerBestiaryView data={campData.bestiario} userId={user.userId} onUpdate={load}/>;
-      case "gradimento":{
-        return <div>
-          <div style={{textAlign:"center",padding:"8px 0 20px"}}>
-            <div style={{fontFamily:"'Cinzel',serif",fontSize:18,fontWeight:700,color:C.gold,textShadow:`0 0 24px ${C.goldGlow}`}}>❤️ Gradimento</div>
-            <div style={{fontSize:10,fontWeight:600,letterSpacing:".2em",textTransform:"uppercase",color:C.textMuted,marginTop:4}}>Come i compagni vedono le vostre scelte</div>
-          </div>
-          {!campData.companion_approval.length?<EmptyState msg="Nessun compagno ancora"/>:
-          campData.companion_approval.map(c=>(
-            <div key={c.id} style={{background:C.bg2,border:`1px solid ${C.border}`,borderRadius:12,padding:"14px 16px",marginBottom:10}}>
-              <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
-                <span style={{fontSize:18}}>{partyIcon(c.name)}</span>
-                <span style={{fontFamily:"'Cinzel',serif",fontSize:14,fontWeight:600,color:C.text,flex:1}}>{c.name}</span>
-                <span style={{fontSize:13,fontWeight:700,color:approvalColor(c.approval)}}>{c.approval}%</span>
-              </div>
-              <div style={{display:"flex",alignItems:"center",gap:10}}>
-                <button onClick={()=>adjustApproval(c,-5)} style={{background:C.bg3,border:`1px solid ${C.border2}`,borderRadius:8,width:32,height:32,color:"#f87171",fontSize:16,cursor:"pointer",flexShrink:0}}>−</button>
-                <div style={{flex:1,height:8,background:C.bg3,borderRadius:4,overflow:"hidden"}}>
-                  <div style={{height:"100%",width:`${c.approval}%`,background:approvalColor(c.approval),borderRadius:4,transition:"width .3s"}}/>
-                </div>
-                <button onClick={()=>adjustApproval(c,5)} style={{background:C.bg3,border:`1px solid ${C.border2}`,borderRadius:8,width:32,height:32,color:"#4ade80",fontSize:16,cursor:"pointer",flexShrink:0}}>+</button>
-              </div>
-            </div>
-          ))}
-        </div>;
-      }
       default:
         if(view.startsWith("compagno_")&&selectedCompagno){
           const p=selectedCompagno;
@@ -2311,7 +2276,7 @@ export default function App(){
     }catch(e){return null;}
   });
   const [authChecked,setAuthChecked]=useState(false);
-  const [data,setData]=useState({sessioni:[],npc:[],gilda:[],fazioni:[],mondo:[],cronologia:[],map_pins:[],map_config:null,bestiario:[],mercato:[],guild_rules:null,companion_approval:[]});
+  const [data,setData]=useState({sessioni:[],npc:[],gilda:[],fazioni:[],mondo:[],cronologia:[],map_pins:[],map_config:null,bestiario:[],mercato:[],guild_rules:null});
   const [loading,setLoading]=useState(true);
   const [view,setView]=useState("sessioni");
   const [sidebarOpen,setSidebarOpen]=useState(false);
@@ -2334,12 +2299,9 @@ export default function App(){
   const [rulesEditing,setRulesEditing]=useState(false);
   const [rulesDraft,setRulesDraft]=useState("");
   const [rulesSaving,setRulesSaving]=useState(false);
-  const [companionModal,setCompanionModal]=useState(null);
-  const [companionNameDraft,setCompanionNameDraft]=useState("");
-  const [companionSaving,setCompanionSaving]=useState(false);
 
   const isAuth = user?.role==="dm";
-  const TITLES={sessioni:"Sessioni",npc:"NPC",mappa:"Mappa",gilda:"Gilda",fazioni:"Fazioni",mondo:"Fogli del Mondo",cronologia:"Cronologia",mercato:"Mercato",bestiario:"Bestiario Scoperto",gradimento:"Gradimento"};
+  const TITLES={sessioni:"Sessioni",npc:"NPC",mappa:"Mappa",gilda:"Gilda",fazioni:"Fazioni",mondo:"Fogli del Mondo",cronologia:"Cronologia",mercato:"Mercato",bestiario:"Bestiario Scoperto"};
 
   const handleLogin = (u) => {
     setUser(u);
@@ -2354,7 +2316,7 @@ export default function App(){
   const loadAll=async()=>{
     setLoading(true);
     try{
-      const [npcs,sessions,factions,locations,timeline,map_pins,map_config,playersRes,bestiary,mercatoRes,guildRulesRes,companionApprovalRes]=await Promise.all([
+      const [npcs,sessions,factions,locations,timeline,map_pins,map_config,playersRes,bestiary,mercatoRes,guildRulesRes]=await Promise.all([
         supabase.from("npcs").select("*").order("created_at",{ascending:false}),
         supabase.from("sessions").select("*").order("created_at",{ascending:false}),
         supabase.from("factions").select("*").order("created_at",{ascending:false}),
@@ -2366,7 +2328,6 @@ export default function App(){
         supabase.from("bestiary").select("*").order("name"),
         supabase.from("mercato").select("*").order("name"),
         supabase.from("guild_rules").select("*").limit(1),
-        supabase.from("companion_approval").select("*").order("sort_order"),
       ]);
       const parsed=(playersRes.data||[]).map(p=>{
         if(typeof p.attacks==="string")try{p.attacks=JSON.parse(p.attacks);}catch(e){p.attacks=[];}
@@ -2385,7 +2346,6 @@ export default function App(){
         fazioni:(factions.data||[]).filter(f=>f.tipo!=="gilda"),mondo:locations.data||[],cronologia:timeline.data||[],map_pins:map_pins.data||[],map_config:map_config.data?.[0]||null,
         bestiario:bestiary.data||[],mercato:mercatoRes.data||[],
         guild_rules:guildRulesRes.data?.[0]||null,
-        companion_approval:companionApprovalRes.data||[],
       }));
     }catch(e){console.error(e);}
     setLoading(false);
@@ -2443,33 +2403,6 @@ export default function App(){
     setRulesSaving(false);
   };
 
-  const adjustApproval=async(comp,delta)=>{
-    const newVal=Math.max(0,Math.min(100,(comp.approval||0)+delta));
-    await supabase.from("companion_approval").update({approval:newVal,updated_at:new Date().toISOString()}).eq("id",comp.id);
-    loadAll();
-  };
-  const saveCompanion=async()=>{
-    if(!companionNameDraft.trim())return;
-    setCompanionSaving(true);
-    try{
-      if(companionModal.mode==="add"){
-        const maxOrder=Math.max(0,...data.companion_approval.map(c=>c.sort_order||0));
-        const {error}=await supabase.from("companion_approval").insert({name:companionNameDraft.trim(),approval:50,sort_order:maxOrder+1});
-        if(error){alert("Errore: "+error.message);setCompanionSaving(false);return;}
-      }else{
-        const {error}=await supabase.from("companion_approval").update({name:companionNameDraft.trim()}).eq("id",companionModal.item.id);
-        if(error){alert("Errore: "+error.message);setCompanionSaving(false);return;}
-      }
-      setCompanionModal(null);
-      await loadAll();
-    }catch(e){alert("Errore: "+e.message);}
-    setCompanionSaving(false);
-  };
-  const deleteCompanion=async(id)=>{
-    if(!window.confirm("Rimuovere questo compagno?"))return;
-    await supabase.from("companion_approval").delete().eq("id",id);
-    loadAll();
-  };
   const saveGeneric=async(imgUrl=null,imgField=null)=>{
     if(!genericModal)return;
     setSaving(true);
@@ -2735,35 +2668,6 @@ export default function App(){
       case "bestiario": return <BestiaryView isAuth={isAuth} data={data.bestiario} onUpdate={loadAll}/>;
 
       case "bastioni": return <BastioniView isAuth={isAuth} onUpdate={loadAll}/>;
-      case "gradimento":{
-        return <div>
-          <div style={{display:"flex",justifyContent:"flex-end",marginBottom:16}}>
-            <Btn primary onClick={()=>{setCompanionNameDraft("");setCompanionModal({mode:"add"});}}>+ Aggiungi Compagno</Btn>
-          </div>
-          {!data.companion_approval.length?<EmptyState msg="Nessun compagno ancora"/>:
-          data.companion_approval.map(c=>(
-            <div key={c.id} style={{background:C.bg2,border:`1px solid ${C.border}`,borderRadius:12,padding:"14px 16px",marginBottom:10}}>
-              <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
-                <span style={{fontSize:18}}>{partyIcon(c.name)}</span>
-                <span onClick={()=>{setCompanionNameDraft(c.name);setCompanionModal({mode:"rename",item:c});}} style={{fontFamily:"'Cinzel',serif",fontSize:14,fontWeight:600,color:C.text,flex:1,cursor:"pointer"}}>{c.name} <span style={{fontSize:10,color:C.textMuted}}>✏</span></span>
-                <span style={{fontSize:13,fontWeight:700,color:approvalColor(c.approval)}}>{c.approval}%</span>
-                <Btn onClick={()=>deleteCompanion(c.id)}>✕</Btn>
-              </div>
-              <div style={{display:"flex",alignItems:"center",gap:10}}>
-                <button onClick={()=>adjustApproval(c,-5)} style={{background:C.bg3,border:`1px solid ${C.border2}`,borderRadius:8,width:32,height:32,color:"#f87171",fontSize:16,cursor:"pointer",flexShrink:0}}>−</button>
-                <div style={{flex:1,height:8,background:C.bg3,borderRadius:4,overflow:"hidden"}}>
-                  <div style={{height:"100%",width:`${c.approval}%`,background:approvalColor(c.approval),borderRadius:4,transition:"width .3s"}}/>
-                </div>
-                <button onClick={()=>adjustApproval(c,5)} style={{background:C.bg3,border:`1px solid ${C.border2}`,borderRadius:8,width:32,height:32,color:"#4ade80",fontSize:16,cursor:"pointer",flexShrink:0}}>+</button>
-              </div>
-            </div>
-          ))}
-          {companionModal&&<Modal title={companionModal.mode==="add"?"Aggiungi Compagno":"Rinomina Compagno"} onClose={()=>setCompanionModal(null)} onSave={saveCompanion} saving={companionSaving}>
-            <label style={{display:"block",fontSize:10,fontWeight:700,letterSpacing:".15em",textTransform:"uppercase",color:C.textDim,marginBottom:6}}>Nome</label>
-            <input autoFocus value={companionNameDraft} onChange={e=>setCompanionNameDraft(e.target.value)} onKeyDown={e=>e.key==="Enter"&&saveCompanion()} placeholder="Nome del compagno" style={{width:"100%",background:C.bg,border:`1px solid ${C.border2}`,borderRadius:8,color:C.text,fontFamily:"inherit",fontSize:14,padding:"8px 12px",outline:"none",boxSizing:"border-box"}}/>
-          </Modal>}
-        </div>;
-      }
 
       default:
         if(view.startsWith("player_") && selectedPlayer){
@@ -2809,9 +2713,6 @@ export default function App(){
         </div>
         <div onClick={()=>nav("bestiario")} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 18px",cursor:"pointer",fontSize:13,color:view==="bestiario"?C.gold:C.textDim,background:view==="bestiario"?`rgba(212,160,23,.08)`:"transparent",borderLeft:`2px solid ${view==="bestiario"?C.gold:"transparent"}`}}>
           <span style={{fontSize:14,width:18,textAlign:"center"}}>🐉</span>Bestiario Scoperto
-        </div>
-        <div onClick={()=>nav("gradimento")} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 18px",cursor:"pointer",fontSize:13,color:view==="gradimento"?C.gold:C.textDim,background:view==="gradimento"?`rgba(212,160,23,.08)`:"transparent",borderLeft:`2px solid ${view==="gradimento"?C.gold:"transparent"}`}}>
-          <span style={{fontSize:14,width:18,textAlign:"center"}}>❤️</span>Gradimento
         </div>
       </div>
       {players.length>0&&<>
