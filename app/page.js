@@ -2435,18 +2435,25 @@ export default function App(){
     await supabase.from("companion_approval").update({approval:newVal,updated_at:new Date().toISOString()}).eq("id",comp.id);
     loadAll();
   };
-  const addCompanion=async()=>{
-    const name=window.prompt("Nome del compagno:");
-    if(!name||!name.trim())return;
-    const maxOrder=Math.max(0,...data.companion_approval.map(c=>c.sort_order||0));
-    await supabase.from("companion_approval").insert({name:name.trim(),approval:50,sort_order:maxOrder+1});
-    loadAll();
-  };
-  const renameCompanion=async(comp)=>{
-    const name=window.prompt("Nuovo nome:",comp.name);
-    if(!name||!name.trim())return;
-    await supabase.from("companion_approval").update({name:name.trim()}).eq("id",comp.id);
-    loadAll();
+  const [companionModal,setCompanionModal]=useState(null);
+  const [companionNameDraft,setCompanionNameDraft]=useState("");
+  const [companionSaving,setCompanionSaving]=useState(false);
+  const saveCompanion=async()=>{
+    if(!companionNameDraft.trim())return;
+    setCompanionSaving(true);
+    try{
+      if(companionModal.mode==="add"){
+        const maxOrder=Math.max(0,...data.companion_approval.map(c=>c.sort_order||0));
+        const {error}=await supabase.from("companion_approval").insert({name:companionNameDraft.trim(),approval:50,sort_order:maxOrder+1});
+        if(error){alert("Errore: "+error.message);setCompanionSaving(false);return;}
+      }else{
+        const {error}=await supabase.from("companion_approval").update({name:companionNameDraft.trim()}).eq("id",companionModal.item.id);
+        if(error){alert("Errore: "+error.message);setCompanionSaving(false);return;}
+      }
+      setCompanionModal(null);
+      await loadAll();
+    }catch(e){alert("Errore: "+e.message);}
+    setCompanionSaving(false);
   };
   const deleteCompanion=async(id)=>{
     if(!window.confirm("Rimuovere questo compagno?"))return;
@@ -2721,14 +2728,14 @@ export default function App(){
       case "gradimento":{
         return <div>
           <div style={{display:"flex",justifyContent:"flex-end",marginBottom:16}}>
-            <Btn primary onClick={addCompanion}>+ Aggiungi Compagno</Btn>
+            <Btn primary onClick={()=>{setCompanionNameDraft("");setCompanionModal({mode:"add"});}}>+ Aggiungi Compagno</Btn>
           </div>
           {!data.companion_approval.length?<EmptyState msg="Nessun compagno ancora"/>:
           data.companion_approval.map(c=>(
             <div key={c.id} style={{background:C.bg2,border:`1px solid ${C.border}`,borderRadius:12,padding:"14px 16px",marginBottom:10}}>
               <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
                 <span style={{fontSize:18}}>{partyIcon(c.name)}</span>
-                <span onClick={()=>renameCompanion(c)} style={{fontFamily:"'Cinzel',serif",fontSize:14,fontWeight:600,color:C.text,flex:1,cursor:"pointer"}}>{c.name} <span style={{fontSize:10,color:C.textMuted}}>✏</span></span>
+                <span onClick={()=>{setCompanionNameDraft(c.name);setCompanionModal({mode:"rename",item:c});}} style={{fontFamily:"'Cinzel',serif",fontSize:14,fontWeight:600,color:C.text,flex:1,cursor:"pointer"}}>{c.name} <span style={{fontSize:10,color:C.textMuted}}>✏</span></span>
                 <span style={{fontSize:13,fontWeight:700,color:approvalColor(c.approval)}}>{c.approval}%</span>
                 <Btn onClick={()=>deleteCompanion(c.id)}>✕</Btn>
               </div>
@@ -2741,6 +2748,10 @@ export default function App(){
               </div>
             </div>
           ))}
+          {companionModal&&<Modal title={companionModal.mode==="add"?"Aggiungi Compagno":"Rinomina Compagno"} onClose={()=>setCompanionModal(null)} onSave={saveCompanion} saving={companionSaving}>
+            <label style={{display:"block",fontSize:10,fontWeight:700,letterSpacing:".15em",textTransform:"uppercase",color:C.textDim,marginBottom:6}}>Nome</label>
+            <input autoFocus value={companionNameDraft} onChange={e=>setCompanionNameDraft(e.target.value)} onKeyDown={e=>e.key==="Enter"&&saveCompanion()} placeholder="Nome del compagno" style={{width:"100%",background:C.bg,border:`1px solid ${C.border2}`,borderRadius:8,color:C.text,fontFamily:"inherit",fontSize:14,padding:"8px 12px",outline:"none",boxSizing:"border-box"}}/>
+          </Modal>}
         </div>;
       }
 
