@@ -910,15 +910,15 @@ function PlayerView({user, onLogout}){
       </div>
     </div>}
 
-    {worldOpen&&<div onClick={()=>setWorldOpen(null)} style={{position:"fixed",inset:0,zIndex:200,display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
-      <div onClick={e=>e.stopPropagation()} style={{position:"absolute",inset:0,background:"rgba(0,0,0,.7)",backdropFilter:"blur(4px)"}}/>
-      <div style={{position:"relative",background:C.bg2,borderRadius:"20px 20px 0 0",border:`1px solid ${C.border2}`,width:"100%",maxWidth:640,maxHeight:"92vh",overflowY:"auto"}}>
+    {worldOpen&&<div onClick={()=>setWorldOpen(null)} style={{position:"fixed",inset:0,zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+      <div onClick={e=>e.stopPropagation()} style={{position:"absolute",inset:0,background:"rgba(0,0,0,.8)",backdropFilter:"blur(4px)"}}/>
+      <div style={{position:"relative",background:C.bg2,borderRadius:20,border:`1px solid ${C.border2}`,width:"100%",maxWidth:820,maxHeight:"90vh",overflowY:"auto",boxShadow:`0 0 60px ${C.goldGlow}`}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"18px 20px 12px"}}>
           <span style={{fontFamily:"'Cinzel',serif",fontSize:20,fontWeight:700,color:C.gold}}>{worldOpen.icon?`${worldOpen.icon} `:""}{worldOpen.name}</span>
           <button onClick={()=>setWorldOpen(null)} style={{background:"none",border:"none",fontSize:22,color:C.textDim,cursor:"pointer"}}>✕</button>
         </div>
         {worldOpen.image_path&&<div style={{padding:"0 20px 16px"}}>
-          <img src={worldOpen.image_path} style={{width:"100%",maxHeight:420,objectFit:"contain",background:C.bg3,borderRadius:12,border:`1px solid ${C.border2}`,display:"block"}}/>
+          <img src={worldOpen.image_path} style={{width:"100%",maxHeight:640,objectFit:"contain",background:C.bg3,borderRadius:12,border:`1px solid ${C.border2}`,display:"block",margin:"0 auto"}}/>
         </div>}
         <div style={{padding:"0 20px 32px"}}>
           {worldOpen.sub&&<div style={{fontSize:15,color:C.text,lineHeight:1.8,fontStyle:"italic"}}>{worldOpen.sub}</div>}
@@ -2833,15 +2833,15 @@ export default function App(){
       </div>
     </div>}
 
-    {worldOpen&&<div onClick={()=>setWorldOpen(null)} style={{position:"fixed",inset:0,zIndex:200,display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
-      <div onClick={e=>e.stopPropagation()} style={{position:"absolute",inset:0,background:"rgba(0,0,0,.7)",backdropFilter:"blur(4px)"}}/>
-      <div style={{position:"relative",background:C.bg2,borderRadius:"20px 20px 0 0",border:`1px solid ${C.border2}`,width:"100%",maxWidth:640,maxHeight:"92vh",overflowY:"auto"}}>
+    {worldOpen&&<div onClick={()=>setWorldOpen(null)} style={{position:"fixed",inset:0,zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+      <div onClick={e=>e.stopPropagation()} style={{position:"absolute",inset:0,background:"rgba(0,0,0,.8)",backdropFilter:"blur(4px)"}}/>
+      <div style={{position:"relative",background:C.bg2,borderRadius:20,border:`1px solid ${C.border2}`,width:"100%",maxWidth:820,maxHeight:"90vh",overflowY:"auto",boxShadow:`0 0 60px ${C.goldGlow}`}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"18px 20px 12px"}}>
           <span style={{fontFamily:"'Cinzel',serif",fontSize:20,fontWeight:700,color:C.gold}}>{worldOpen.icon?`${worldOpen.icon} `:""}{worldOpen.name}</span>
           <button onClick={()=>setWorldOpen(null)} style={{background:"none",border:"none",fontSize:22,color:C.textDim,cursor:"pointer"}}>✕</button>
         </div>
         {worldOpen.image_path&&<div style={{padding:"0 20px 16px"}}>
-          <img src={worldOpen.image_path} style={{width:"100%",maxHeight:420,objectFit:"contain",background:C.bg3,borderRadius:12,border:`1px solid ${C.border2}`,display:"block"}}/>
+          <img src={worldOpen.image_path} style={{width:"100%",maxHeight:640,objectFit:"contain",background:C.bg3,borderRadius:12,border:`1px solid ${C.border2}`,display:"block",margin:"0 auto"}}/>
         </div>}
         <div style={{padding:"0 20px 32px"}}>
           {worldOpen.sub&&<div style={{fontSize:15,color:C.text,lineHeight:1.8,fontStyle:"italic"}}>{worldOpen.sub}</div>}
