@@ -27,66 +27,6 @@ const ABILITA = [
 
 const mod = v => Math.floor(((v||10)-10)/2);
 const fmtMod = v => (v>=0?"+":"")+v;
-const partyIcon = name => {
-  const n=(name||"").toLowerCase();
-  if(n.includes("ryu"))return "👊";
-  if(n.includes("kassandra"))return "🛡️";
-  if(n.includes("taipan"))return "🐍";
-  if(n.includes("vaelor"))return "🍃";
-  if(n.includes("lobdlin")||n.includes("lobdi"))return "🕊️";
-  return "⚔️";
-};
-const formatLongText = text => {
-  if(!text) return [];
-  const re=/((?:\p{Emoji_Presentation}|\p{Extended_Pictographic})\s*)?([A-ZÀÁÂÃÄÅÈÉÊËÌÍÎÏÒÓÔÕÖÙÚÛÜ]{4,}(?:\s[A-ZÀÁÂÃÄÅÈÉÊËÌÍÎÏÒÓÔÕÖÙÚÛÜ]{4,})*)\s*/gu;
-  const matches=[...text.matchAll(re)];
-  if(matches.length===0)return [{type:"p",text}];
-  const blocks=[];
-  const intro=text.slice(0,matches[0].index).trim();
-  if(intro)blocks.push({type:"p",text:intro});
-  for(let i=0;i<matches.length;i++){
-    const m=matches[i];
-    const header=m[2];
-    const emoji=(m[1]||"").trim();
-    const start=m.index+m[0].length;
-    const end=i+1<matches.length?matches[i+1].index:text.length;
-    const body=text.slice(start,end).trim();
-    blocks.push({type:"h",header,emoji});
-    if(body)blocks.push({type:"p",text:body});
-  }
-  return blocks;
-};
-const LongText = ({text,style={}}) => !text?null:<>
-  {formatLongText(text).map((b,i)=>b.type==="h"
-    ?<div key={i} style={{fontSize:11,fontWeight:700,letterSpacing:".15em",textTransform:"uppercase",color:C.gold,marginTop:i===0?0:16,marginBottom:6}}>{b.emoji?b.emoji+" ":""}{b.header}</div>
-    :<div key={i} style={{fontSize:15,color:C.text,lineHeight:1.75,marginBottom:8,...style}}>{b.text}</div>
-  )}
-</>;
-const RulesText = ({text}) => {
-  if(!text) return null;
-  const blocks=[];
-  let bulletBuf=[];
-  const flushBullets=()=>{ if(bulletBuf.length){blocks.push({type:"ul",items:bulletBuf});bulletBuf=[];} };
-  text.split("\n").forEach(raw=>{
-    const line=raw.trim();
-    if(!line){flushBullets();return;}
-    if(line.startsWith("*")||line.startsWith("-")){
-      bulletBuf.push(line.replace(/^[-*]\s*/,""));
-    }else{
-      flushBullets();
-      const isHeader=line.length<70&&!/[.!?%]$/.test(line);
-      blocks.push({type:isHeader?"h":"p",text:line});
-    }
-  });
-  flushBullets();
-  return <>
-    {blocks.map((b,i)=>{
-      if(b.type==="h")return <div key={i} style={{fontFamily:"'Cinzel',serif",fontSize:15,fontWeight:700,color:C.gold,marginTop:i===0?0:18,marginBottom:6}}>{b.text}</div>;
-      if(b.type==="ul")return <ul key={i} style={{margin:"4px 0 12px",paddingLeft:20,color:C.text,fontSize:14,lineHeight:1.7}}>{b.items.map((it,j)=><li key={j} style={{marginBottom:3}}>{it}</li>)}</ul>;
-      return <div key={i} style={{fontSize:14,color:C.text,lineHeight:1.7,marginBottom:8}}>{b.text}</div>;
-    })}
-  </>;
-};
 const tagColor = t => ({
   Alleato:{border:"#1a4a2e",color:"#4ade80"},
   Neutrale:{border:"#4a3800",color:"#fbbf24"},
@@ -230,7 +170,7 @@ function NpcPanel({npc,onClose}){
         {npc.role&&<div style={{fontSize:13,color:C.textDim,marginBottom:6,fontStyle:"italic"}}>{npc.role}</div>}
         {npc.sede&&<div style={{fontSize:13,marginBottom:6}}>📍 <span style={{color:C.gold}}>{npc.sede}</span></div>}
         {npc.primo_incontro&&<div style={{fontSize:13,marginBottom:14}}><strong>Primo incontro:</strong> <span style={{color:C.gold}}>{npc.primo_incontro}</span></div>}
-        {npc.description&&<LongText text={npc.description}/>}
+        {npc.description&&<div style={{fontSize:15,color:C.text,lineHeight:1.75}}>{npc.description}</div>}
         {npc.influence!=null&&npc.grado&&<div style={{marginTop:14}}>
           <div style={{height:4,background:"#101827",borderRadius:2,overflow:"hidden",marginBottom:4}}><div style={{height:"100%",width:`${npc.influence||0}%`,background:"linear-gradient(90deg,#7a5c00,#d4a017)"}}/></div>
           <div style={{fontSize:11,color:"#8a8070"}}>Fama: {npc.influence||0}%</div>
@@ -257,17 +197,16 @@ function PlayerView({user, onLogout}){
   const [avatarFile, setAvatarFile] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [view, setView] = useState("sessioni");
-  const [campData, setCampData] = useState({sessioni:[],npc:[],gilda:[],fazioni:[],mondo:[],cronologia:[],map_pins:[],map_config:null,guild_rules:null});
+  const [view, setView] = useState("scheda");
+  const [campData, setCampData] = useState({sessioni:[],npc:[],gilda:[],fazioni:[],mondo:[],cronologia:[],map_pins:[],map_config:null});
   const [npcOpen, setNpcOpen] = useState(null);
   const [allPlayers, setAllPlayers] = useState([]);
   const [selectedCompagno, setSelectedCompagno] = useState(null);
-  const [rulesOpen, setRulesOpen] = useState(false);
 
   const charTabs = ["scheda","inventario","famigli","note sessione"];
 
   const load = async () => {
-    const [charRes, invRes, notesRes, npcs, sessions, factions, locations, timeline, map_pins, map_config, bestiary, mercatoRes2, guildRulesRes] = await Promise.all([
+    const [charRes, invRes, notesRes, npcs, sessions, factions, locations, timeline, map_pins, map_config, bestiary, mercatoRes2] = await Promise.all([
       supabase.from("player_characters").select("*").eq("player_id", user.userId).maybeSingle(),
       supabase.from("player_inventory").select("*").eq("player_id", user.userId).order("created_at"),
       supabase.from("player_session_notes").select("*").eq("player_id", user.userId).order("created_at",{ascending:false}),
@@ -280,7 +219,6 @@ function PlayerView({user, onLogout}){
       supabase.from("map_config").select("*").order("id"),
         supabase.from("bestiary").select("*").order("name"),
         supabase.from("mercato").select("*").order("name"),
-        supabase.from("guild_rules").select("*").limit(1),
     ]);
     if(charRes.data){
       const c = charRes.data;
@@ -299,7 +237,6 @@ function PlayerView({user, onLogout}){
       map_pins:map_pins.data||[], map_config:map_config.data?.[0]||null,
       bestiario:bestiary.data||[],
       mercato:mercatoRes2.data||[],
-      guild_rules:guildRulesRes.data?.[0]||null,
     });
     const playersRes = await supabase.from("player_characters").select("*").order("name");
     const parsed = (playersRes.data||[]).map(p=>{
@@ -401,6 +338,7 @@ function PlayerView({user, onLogout}){
   const lbl={display:"block",fontSize:10,fontWeight:700,letterSpacing:".15em",textTransform:"uppercase",color:C.textDim,marginBottom:2};
 
   const navItems=[
+    {v:"scheda",icon:"🛡️",label:"La mia Scheda"},
     {v:"sessioni",icon:"📜",label:"Sessioni"},
     {v:"gilda",icon:"🏴",label:"Gilda"},
     {v:"npc",icon:"👤",label:"NPC"},
@@ -411,6 +349,7 @@ function PlayerView({user, onLogout}){
   ];
   const partyNavItems=[
     {v:"bastioni",icon:"⚓",label:"Bastioni"},
+    {v:"loot",icon:"💰",label:"Loot di Gruppo"},
     {v:"bestiario",icon:"🐉",label:"Bestiario Scoperto"},
   ];
 
@@ -450,14 +389,9 @@ function PlayerView({user, onLogout}){
         const gradoColorP={"Ferro":"#a0522d","Argento":"#c0c0c0","Oro":C.gold,"Platino":"#e5e4e2","Adamantio":"#b9f2ff"};
         const sortedGP=[...campData.gilda].sort((a,b)=>(gradoOrdP[b.grado]||0)-(gradoOrdP[a.grado]||0));
         const gradiP=["Adamantio","Platino","Oro","Argento","Ferro"];
-        return <div>
-          <div onClick={()=>setRulesOpen(true)} style={{display:"flex",alignItems:"center",gap:10,background:C.bg2,border:`1px solid ${C.border2}`,borderRadius:12,padding:"12px 14px",marginBottom:16,cursor:"pointer"}}>
-            <span style={{fontSize:18}}>📜</span>
-            <span style={{fontFamily:"'Cinzel',serif",fontSize:13,fontWeight:600,color:C.gold,flex:1}}>Regole di Gilda</span>
-            <span style={{fontSize:12,color:C.textMuted}}>Come funziona la fama ›</span>
-          </div>
-          {!campData.gilda.length?<EmptyState msg="Nessuna gilda ancora"/>:
-          gradiP.map(grado=>{
+        return !campData.gilda.length?<EmptyState msg="Nessuna gilda ancora"/>:
+        <div>
+          {gradiP.map(grado=>{
             const gruppi=sortedGP.filter(g=>g.grado===grado);
             if(!gruppi.length)return null;
             return <div key={grado} style={{marginBottom:16}}>
@@ -479,17 +413,6 @@ function PlayerView({user, onLogout}){
               ))}
             </div>;
           })}
-          {rulesOpen&&<div onClick={()=>setRulesOpen(false)} style={{position:"fixed",inset:0,zIndex:300,background:"rgba(0,0,0,.85)",backdropFilter:"blur(4px)",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
-            <div onClick={e=>e.stopPropagation()} style={{background:C.bg2,border:`1px solid ${C.border2}`,borderRadius:16,maxWidth:560,width:"100%",maxHeight:"80vh",overflowY:"auto",padding:24,boxShadow:`0 0 40px ${C.goldGlow}`}}>
-              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
-                <span style={{fontFamily:"'Cinzel',serif",fontSize:18,fontWeight:700,color:C.gold}}>📜 Regole di Gilda</span>
-                <button onClick={()=>setRulesOpen(false)} style={{background:"none",border:"none",fontSize:22,color:C.textDim,cursor:"pointer"}}>✕</button>
-              </div>
-              {campData.guild_rules?.text
-                ?<RulesText text={campData.guild_rules.text}/>
-                :<div style={{color:C.textMuted,fontSize:13,fontStyle:"italic"}}>Il DM non ha ancora scritto le regole di gilda.</div>}
-            </div>
-          </div>}
         </div>;
       }
       case "fazioni": return !campData.fazioni.length?<EmptyState msg="Nessuna fazione ancora"/>:
@@ -549,7 +472,6 @@ function PlayerView({user, onLogout}){
           </div>
         </div>;
       }
-      case "bestiario": return <PlayerBestiaryView data={campData.bestiario} userId={user.userId} onUpdate={load}/>;
       default:
         if(view.startsWith("compagno_")&&selectedCompagno){
           const p=selectedCompagno;
@@ -565,17 +487,13 @@ function PlayerView({user, onLogout}){
                 <div style={{fontSize:12,color:C.textDim,marginTop:3}}>{[p.race,p.class,`Lv ${p.level}`].filter(Boolean).join(" · ")}</div>
               </div>
             </div>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:6,marginBottom:8}}>
-              {[["CA",p.ac||0],["Iniziativa",fmtMod(mod(p.dex||10))],["Livello",p.level||1],["B.Comp.",`+${p.prof_bonus||2}`]].map(([l,v])=>(
-                <div key={l} style={{background:C.bg3,border:`1px solid ${C.border}`,borderRadius:10,padding:"10px 4px",textAlign:"center"}}>
-                  <div style={{fontSize:8,fontWeight:700,letterSpacing:".15em",textTransform:"uppercase",color:C.textDim,marginBottom:2}}>{l}</div>
-                  <div style={{fontFamily:"'Cinzel',serif",fontSize:18,fontWeight:700,color:l==="Iniziativa"?(mod(p.dex||10)>=0?C.green:"#f87171"):l==="B.Comp."?C.gold:C.text}}>{v}</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:12}}>
+              {[["CA",p.ac||0],["Livello",p.level||1],["Background",p.background||"—"]].map(([l,v])=>(
+                <div key={l} style={{background:C.bg3,border:`1px solid ${C.border}`,borderRadius:10,padding:"12px 8px",textAlign:"center"}}>
+                  <div style={{fontSize:9,fontWeight:700,letterSpacing:".18em",textTransform:"uppercase",color:C.textDim}}>{l}</div>
+                  <div style={{fontFamily:"'Cinzel',serif",fontSize:typeof v==="number"?22:13,fontWeight:700,color:C.text,marginTop:3}}>{v}</div>
                 </div>
               ))}
-            </div>
-            <div style={{background:C.bg3,border:`1px solid ${C.border}`,borderRadius:10,padding:"10px 12px",marginBottom:12,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <span style={{fontSize:10,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",color:C.textDim}}>Background</span>
-              <span style={{fontFamily:"'Cinzel',serif",fontSize:13,fontWeight:700,color:C.text}}>{p.background||"—"}</span>
             </div>
             <Card style={{marginBottom:12}}>
               <div style={{fontSize:13,color:C.textDim,marginBottom:10}}>Punti Ferita</div>
@@ -612,34 +530,6 @@ function PlayerView({user, onLogout}){
                 </div>
               ))}
             </Card>}
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
-              <Card>
-                <div style={{fontSize:10,fontWeight:700,letterSpacing:".2em",textTransform:"uppercase",color:C.gold,marginBottom:10,display:"flex",justifyContent:"space-between"}}>
-                  <span>Abilità</span><span style={{fontWeight:400,color:C.textMuted}}>+{p.prof_bonus||2}</span>
-                </div>
-                {ABILITA.map(a=>{
-                  const hasProf=(p.skill_proficiencies||[]).includes(a.n);
-                  const bonus=mod(p[a.s]||10)+(hasProf?(p.prof_bonus||2):0);
-                  return <div key={a.n} style={{display:"flex",alignItems:"center",gap:6,padding:"4px 2px"}}>
-                    <div style={{width:12,height:12,borderRadius:"50%",border:`2px solid ${hasProf?C.gold:C.border2}`,background:hasProf?C.gold:"transparent",flexShrink:0}}/>
-                    <div style={{fontSize:12,fontWeight:600,color:hasProf?C.gold:C.text,width:28}}>{fmtMod(bonus)}</div>
-                    <div style={{fontSize:11,color:C.textDim,flex:1}}>{a.n}</div>
-                  </div>;
-                })}
-              </Card>
-              <Card>
-                <div style={{fontSize:10,fontWeight:700,letterSpacing:".2em",textTransform:"uppercase",color:C.gold,marginBottom:10}}>Tiri Salvezza</div>
-                {[["FOR","str"],["DES","dex"],["COS","con"],["INT","int"],["SAG","wis"],["CAR","cha"]].map(([l,k])=>{
-                  const hasProf=(p.saving_throw_proficiencies||[]).includes(k);
-                  const bonus=mod(p[k]||10)+(hasProf?(p.prof_bonus||2):0);
-                  return <div key={k} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 2px"}}>
-                    <div style={{width:12,height:12,borderRadius:"50%",border:`2px solid ${hasProf?C.gold:C.border2}`,background:hasProf?C.gold:"transparent",flexShrink:0}}/>
-                    <div style={{fontSize:12,fontWeight:600,color:hasProf?C.gold:C.text,width:28}}>{fmtMod(bonus)}</div>
-                    <div style={{fontSize:11,color:C.textDim,flex:1}}>{l}</div>
-                  </div>;
-                })}
-              </Card>
-            </div>
           </div>;
         }
         return null;
@@ -757,13 +647,18 @@ function PlayerView({user, onLogout}){
           <div style={{padding:"14px 0 6px"}}>
             <div style={{fontSize:10,fontWeight:600,letterSpacing:".18em",textTransform:"uppercase",color:C.textMuted,padding:"0 18px 6px"}}>La Compagnia</div>
             {allPlayers.map((p,i)=>{
-              const isSelf=p.player_id===user.userId;
-              const vkey=isSelf?"scheda":`compagno_${p.id}`;
-              const active=isSelf?view==="scheda":view===vkey;
-              return <div key={i} onClick={()=>{if(!isSelf){setSelectedCompagno(p);}setView(vkey);setSidebarOpen(false);load();}} style={{display:"flex",alignItems:"center",gap:8,padding:"9px 18px",cursor:"pointer",background:active?`rgba(212,160,23,.08)`:"transparent",borderLeft:`2px solid ${active?C.gold:"transparent"}`}}>
-                <span style={{fontSize:14,flexShrink:0}}>{partyIcon(p.name)}</span>
-                <div style={{fontSize:13,color:active?C.gold:C.textDim,fontWeight:active?500:400}}>{p.name}{isSelf?" (tu)":""}</div>
-                <div style={{marginLeft:"auto",fontSize:10,color:C.textMuted}}>{p.hp}/{p.max_hp}</div>
+              const vkey=`compagno_${p.id}`;
+              const hpPct=p.max_hp>0?Math.max(0,Math.min(100,((p.hp||0)/p.max_hp)*100)):0;
+              const hpColor=hpPct>60?C.green:hpPct>25?C.yellow:"#f87171";
+              return <div key={i} onClick={()=>{setSelectedCompagno(p);setView(vkey);setSidebarOpen(false);load();}} style={{padding:"9px 18px",cursor:"pointer",background:view===vkey?`rgba(212,160,23,.08)`:"transparent",borderLeft:`2px solid ${view===vkey?C.gold:"transparent"}`}}>
+                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3}}>
+                  <div style={{width:8,height:8,borderRadius:"50%",background:hpColor,flexShrink:0}}/>
+                  <div style={{fontSize:13,color:view===vkey?C.gold:C.textDim,fontWeight:view===vkey?500:400}}>{p.name}</div>
+                  <div style={{marginLeft:"auto",fontSize:10,color:C.textMuted}}>{p.hp}/{p.max_hp}</div>
+                </div>
+                <div style={{height:3,background:C.bg3,borderRadius:2,overflow:"hidden",marginLeft:16}}>
+                  <div style={{height:"100%",width:`${hpPct}%`,background:hpColor,borderRadius:2}}/>
+                </div>
               </div>;
             })}
           </div>
@@ -1076,26 +971,6 @@ function DmPlayerView({player, onUpdate}){
     onUpdate();
   };
 
-  const toggleSkillProf=async(skillName)=>{
-    if(!char)return;
-    const profs=[...(char.skill_proficiencies||[])];
-    const idx=profs.indexOf(skillName);
-    if(idx>=0)profs.splice(idx,1);else profs.push(skillName);
-    await supabase.from("player_characters").update({skill_proficiencies:profs}).eq("id",char.id);
-    setChar(c=>({...c,skill_proficiencies:profs}));
-    onUpdate();
-  };
-
-  const toggleSaveProf=async(stat)=>{
-    if(!char)return;
-    const profs=[...(char.saving_throw_proficiencies||[])];
-    const idx=profs.indexOf(stat);
-    if(idx>=0)profs.splice(idx,1);else profs.push(stat);
-    await supabase.from("player_characters").update({saving_throw_proficiencies:profs}).eq("id",char.id);
-    setChar(c=>({...c,saving_throw_proficiencies:profs}));
-    onUpdate();
-  };
-
   const saveInv = async () => {
     setSaving(true);
     const obj = {...invVals, quantity: parseInt(invVals.quantity)||1};
@@ -1231,17 +1106,13 @@ function DmPlayerView({player, onUpdate}){
       </div>
 
       {tab==="scheda"&&<>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:6,marginBottom:8}}>
-          {[["CA",char.ac||0],["Iniziativa",fmtMod(mod(char.dex||10))],["Livello",char.level||1],["B.Comp.",`+${char.prof_bonus||2}`]].map(([l,v])=>(
-            <div key={l} style={{background:C.bg3,border:`1px solid ${C.border}`,borderRadius:10,padding:"10px 4px",textAlign:"center"}}>
-              <div style={{fontSize:8,fontWeight:700,letterSpacing:".15em",textTransform:"uppercase",color:C.textDim,marginBottom:2}}>{l}</div>
-              <div style={{fontFamily:"'Cinzel',serif",fontSize:18,fontWeight:700,color:l==="Iniziativa"?(mod(char.dex||10)>=0?C.green:"#f87171"):l==="B.Comp."?C.gold:C.text}}>{v}</div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:12}}>
+          {[["CA",char.ac||0],["Livello",char.level||1],["Background",char.background||"—"]].map(([l,v])=>(
+            <div key={l} style={{background:C.bg3,border:`1px solid ${C.border}`,borderRadius:10,padding:"12px 8px",textAlign:"center"}}>
+              <div style={{fontSize:9,fontWeight:700,letterSpacing:".18em",textTransform:"uppercase",color:C.textDim}}>{l}</div>
+              <div style={{fontFamily:"'Cinzel',serif",fontSize:typeof v==="number"?22:13,fontWeight:700,color:C.text,marginTop:3}}>{v}</div>
             </div>
           ))}
-        </div>
-        <div style={{background:C.bg3,border:`1px solid ${C.border}`,borderRadius:10,padding:"10px 12px",marginBottom:12,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <span style={{fontSize:10,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",color:C.textDim}}>Background</span>
-          <span style={{fontFamily:"'Cinzel',serif",fontSize:13,fontWeight:700,color:C.text}}>{char.background||"—"}</span>
         </div>
         <Card style={{marginBottom:12}}>
           <div style={{fontSize:13,color:C.textDim,marginBottom:10}}>Punti Ferita</div>
@@ -1291,34 +1162,16 @@ function DmPlayerView({player, onUpdate}){
             ))}
           </div>
         </Card>}
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
-          <Card>
-            <div style={{fontSize:10,fontWeight:700,letterSpacing:".2em",textTransform:"uppercase",color:C.gold,marginBottom:10,display:"flex",justifyContent:"space-between"}}>
-              <span>Abilità</span><span style={{fontWeight:400,color:C.textMuted}}>+{char.prof_bonus||2}</span>
+        <Card style={{marginBottom:12}}>
+          <div style={{fontSize:10,fontWeight:700,letterSpacing:".2em",textTransform:"uppercase",color:C.gold,marginBottom:10}}>Abilità</div>
+          {ABILITA.map(a=>(
+            <div key={a.n} style={{display:"flex",alignItems:"center",gap:8,padding:"4px 2px"}}>
+              <div style={{width:12,height:12,borderRadius:"50%",border:`2px solid ${C.border2}`,flexShrink:0}}/>
+              <div style={{fontSize:12,fontWeight:600,color:C.text,width:28}}>{fmtMod(mod(char[a.s]||10))}</div>
+              <div style={{fontSize:11,color:C.textDim,flex:1}}>{a.n}</div>
             </div>
-            {ABILITA.map(a=>{
-              const hasProf=(char.skill_proficiencies||[]).includes(a.n);
-              const bonus=mod(char[a.s]||10)+(hasProf?(char.prof_bonus||2):0);
-              return <div key={a.n} onClick={()=>toggleSkillProf(a.n)} style={{display:"flex",alignItems:"center",gap:6,padding:"4px 2px",cursor:"pointer",borderRadius:4,transition:"background .1s"}}>
-                <div style={{width:12,height:12,borderRadius:"50%",border:`2px solid ${hasProf?C.gold:C.border2}`,background:hasProf?C.gold:"transparent",flexShrink:0,transition:"all .15s"}}/>
-                <div style={{fontSize:12,fontWeight:600,color:hasProf?C.gold:C.text,width:28}}>{fmtMod(bonus)}</div>
-                <div style={{fontSize:11,color:C.textDim,flex:1}}>{a.n}</div>
-              </div>;
-            })}
-          </Card>
-          <Card>
-            <div style={{fontSize:10,fontWeight:700,letterSpacing:".2em",textTransform:"uppercase",color:C.gold,marginBottom:10}}>Tiri Salvezza</div>
-            {[["FOR","str"],["DES","dex"],["COS","con"],["INT","int"],["SAG","wis"],["CAR","cha"]].map(([l,k])=>{
-              const hasProf=(char.saving_throw_proficiencies||[]).includes(k);
-              const bonus=mod(char[k]||10)+(hasProf?(char.prof_bonus||2):0);
-              return <div key={k} onClick={()=>toggleSaveProf(k)} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 2px",cursor:"pointer"}}>
-                <div style={{width:12,height:12,borderRadius:"50%",border:`2px solid ${hasProf?C.gold:C.border2}`,background:hasProf?C.gold:"transparent",flexShrink:0,transition:"all .15s"}}/>
-                <div style={{fontSize:12,fontWeight:600,color:hasProf?C.gold:C.text,width:28}}>{fmtMod(bonus)}</div>
-                <div style={{fontSize:11,color:C.textDim,flex:1}}>{l}</div>
-              </div>;
-            })}
-          </Card>
-        </div>
+          ))}
+        </Card>
       </>}
 
       {tab==="inventario"&&<>
@@ -1404,7 +1257,7 @@ function DmPlayerView({player, onUpdate}){
 
 const TABLE_MAP = {
   sessioni:{table:"sessions",fields:[{id:"num",l:"Numero",ph:"es. I"},{id:"title",l:"Titolo",ph:"Titolo..."},{id:"date",l:"Data",type:"date"},{id:"excerpt",l:"Riassunto",ph:"Cosa è successo...",ta:true}]},
-  gilda:{table:"factions",fields:[{id:"name",l:"Nome",ph:"Nome"},{id:"grado",l:"Grado",sel:["Ferro","Argento","Oro","Platino","Adamantio"]},{id:"description",l:"Descrizione",ph:"...",ta:true},{id:"sede",l:"Sede",ph:"es. Porto di Arenmar"},{id:"influence",l:"Fama %",ph:"0-100"},{id:"is_party",l:"È il gruppo del party (escluso dalle variazioni automatiche settimanali)",chk:true}],tipo:"gilda",hasImage:true,imageBucket:"npc-images",imageField:"img_url"},
+  gilda:{table:"factions",fields:[{id:"name",l:"Nome",ph:"Nome"},{id:"grado",l:"Grado",sel:["Ferro","Argento","Oro","Platino","Adamantio"]},{id:"description",l:"Descrizione",ph:"...",ta:true},{id:"sede",l:"Sede",ph:"es. Porto di Arenmar"},{id:"influence",l:"Fama %",ph:"0-100"}],tipo:"gilda",hasImage:true,imageBucket:"npc-images",imageField:"img_url"},
   fazioni:{table:"factions",fields:[{id:"name",l:"Nome",ph:"Nome"},{id:"icon",l:"Icona",ph:"⚔️"},{id:"description",l:"Descrizione",ph:"...",ta:true},{id:"influence",l:"Influenza %",ph:"0-100"}],tipo:"fazione"},
   mondo:{table:"locations",fields:[{id:"name",l:"Nome",ph:"Nome"},{id:"icon",l:"Icona",ph:"🏰"},{id:"sub",l:"Descrizione",ph:"...",ta:true}]},
   mercato:{table:"mercato",fields:[{id:"name",l:"Nome",ph:"es. Armeria di Brenor"},{id:"location",l:"Città/Luogo",ph:"es. Porto di Arenmar"},{id:"description",l:"Descrizione",ph:"Cosa vende...",ta:true}],hasImage:true,imageBucket:"npc-images",imageField:"img_url"},
@@ -1554,12 +1407,8 @@ function GenericModal({title,fields,vals,onClose,onSave,saving,onChange,hasImage
     </div>}
     {fields.map(f=>(
       <div key={f.id} style={{marginBottom:13}}>
-        {!f.chk&&<label style={{display:"block",fontSize:10,fontWeight:700,letterSpacing:".15em",textTransform:"uppercase",color:C.textDim}}>{f.l}</label>}
-        {f.chk?<label style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",fontSize:13,color:C.text,marginTop:4}}>
-            <input type="checkbox" checked={!!vals[f.id]} onChange={e=>onChange(f.id,e.target.checked)} style={{width:16,height:16,cursor:"pointer",accentColor:C.gold}}/>
-            {f.l}
-          </label>
-          :f.sel?<select value={vals[f.id]||""} onChange={e=>onChange(f.id,e.target.value)} style={{...inp,cursor:"pointer"}}>
+        <label style={{display:"block",fontSize:10,fontWeight:700,letterSpacing:".15em",textTransform:"uppercase",color:C.textDim}}>{f.l}</label>
+        {f.sel?<select value={vals[f.id]||""} onChange={e=>onChange(f.id,e.target.value)} style={{...inp,cursor:"pointer"}}>
             {f.sel.map(o=><option key={o} value={o} style={{background:C.bg2}}>{o||"—"}</option>)}
           </select>
           :f.ta?<textarea value={vals[f.id]||""} onChange={e=>onChange(f.id,e.target.value)} placeholder={f.ph} style={{...inp,minHeight:80,resize:"vertical"}}/>
@@ -1570,17 +1419,168 @@ function GenericModal({title,fields,vals,onClose,onSave,saving,onChange,hasImage
 }
 
 
+// ── LOOT VIEW ──
+function LootView({isAuth}){
+  const [items, setItems] = useState([]);
+  const [coins, setCoins] = useState({mo:0,ma:0,mr:0,mp:0});
+  const [loading, setLoading] = useState(true);
+  const [modal, setModal] = useState(null);
+  const [vals, setVals] = useState({});
+  const [saving, setSaving] = useState(false);
+  const [coinsId, setCoinsId] = useState(null);
+
+  const MAX_KG = 20;
+  const totalWeight = items.reduce((sum,i)=>(sum+(parseFloat(i.weight)||0)*(parseInt(i.quantity)||1)),0);
+  const weightPct = Math.min(100,(totalWeight/MAX_KG)*100);
+  const weightColor = weightPct>90?"#f87171":weightPct>70?C.yellow:C.green;
+
+  const load = async () => {
+    const [lootRes, coinsRes] = await Promise.all([
+      supabase.from("party_loot").select("*").order("created_at",{ascending:false}),
+      supabase.from("party_coins").select("*").limit(1),
+    ]);
+    setItems(lootRes.data||[]);
+    if(coinsRes.data?.[0]){
+      setCoins(coinsRes.data[0]);
+      setCoinsId(coinsRes.data[0].id);
+    }
+    setLoading(false);
+  };
+
+  useEffect(()=>{ load(); },[]);
+
+  const saveCoins = async (key, val) => {
+    const newCoins = {...coins, [key]: parseInt(val)||0};
+    setCoins(newCoins);
+    if(coinsId){
+      await supabase.from("party_coins").update({[key]:parseInt(val)||0}).eq("id",coinsId);
+    }
+  };
+
+  const saveItem = async () => {
+    setSaving(true);
+    try {
+      const obj = {
+        ...vals,
+        weight: parseFloat(vals.weight)||0,
+        quantity: parseInt(vals.quantity)||1,
+      };
+      delete obj.id; delete obj.created_at;
+      if(modal?.id){ await supabase.from("party_loot").update(obj).eq("id",modal.id); }
+      else { await supabase.from("party_loot").insert(obj); }
+      setModal(null); load();
+    } catch(e){ alert("Errore: "+e.message); }
+    setSaving(false);
+  };
+
+  const delItem = async (id) => {
+    if(!window.confirm("Rimuovere dal loot?")) return;
+    await supabase.from("party_loot").delete().eq("id",id);
+    load();
+  };
+
+  const inp = {width:"100%",background:C.bg,border:`1px solid ${C.border2}`,borderRadius:8,color:C.text,fontFamily:"inherit",fontSize:14,padding:"8px 12px",outline:"none",marginTop:4,boxSizing:"border-box"};
+  const lbl = {display:"block",fontSize:10,fontWeight:700,letterSpacing:".15em",textTransform:"uppercase",color:C.textDim,marginBottom:2};
+
+  if(loading) return <div style={{textAlign:"center",padding:"60px 20px",color:C.textDim}}>Caricamento...</div>;
+
+  return <div style={{maxWidth:600,margin:"0 auto"}}>
+    <div style={{textAlign:"center",padding:"16px 0 20px"}}>
+      <div style={{fontFamily:"'Cinzel',serif",fontSize:18,fontWeight:700,color:C.gold,textShadow:`0 0 24px ${C.goldGlow}`}}>💰 Loot di Gruppo</div>
+      <div style={{fontSize:10,fontWeight:600,letterSpacing:".2em",textTransform:"uppercase",color:C.textMuted,marginTop:4}}>Tesoro condiviso del party</div>
+    </div>
+
+    {/* Monete */}
+    <Card style={{marginBottom:12}}>
+      <div style={{fontSize:10,fontWeight:700,letterSpacing:".2em",textTransform:"uppercase",color:C.gold,marginBottom:12}}>🪙 Monete del Party</div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}}>
+        {[["MO","mo","#d4a017"],["MA","ma","#c0c0c0"],["MR","mr","#cd7f32"],["MP","mp","#a0a0a0"]].map(([l,k,col])=>(
+          <div key={k} style={{textAlign:"center"}}>
+            <div style={{fontSize:11,fontWeight:700,color:col,marginBottom:4}}>{l}</div>
+            <input type="number" value={coins[k]||0} onChange={e=>saveCoins(k,e.target.value)}
+              style={{...inp,marginTop:0,textAlign:"center",fontSize:18,fontWeight:700,color:col,padding:"8px 4px"}}/>
+          </div>
+        ))}
+      </div>
+    </Card>
+
+    {/* Peso */}
+    <Card style={{marginBottom:12}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+        <div style={{fontSize:10,fontWeight:700,letterSpacing:".2em",textTransform:"uppercase",color:C.gold}}>⚖️ Peso Totale</div>
+        <div style={{fontSize:13,fontWeight:700,color:weightColor}}>{totalWeight.toFixed(1)} / {MAX_KG} kg</div>
+      </div>
+      <div style={{height:8,background:C.bg4,borderRadius:4,overflow:"hidden"}}>
+        <div style={{height:"100%",width:`${weightPct}%`,background:weightColor,borderRadius:4,transition:"width .3s"}}/>
+      </div>
+      {weightPct>90&&<div style={{fontSize:11,color:"#f87171",marginTop:6,textAlign:"center"}}>⚠️ Carico quasi al massimo!</div>}
+    </Card>
+
+    {/* Oggetti */}
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+      <div style={{fontSize:10,fontWeight:700,letterSpacing:".2em",textTransform:"uppercase",color:C.gold}}>📦 Oggetti ({items.length})</div>
+      <Btn primary onClick={()=>{setVals({name:"",type:"oggetto",weight:0,quantity:1,description:"",value:""});setModal({});}}>+ Aggiungi</Btn>
+    </div>
+
+    {!items.length?<Card><div style={{textAlign:"center",padding:"30px",color:C.textMuted,fontSize:13,fontStyle:"italic"}}>Nessun oggetto nel loot</div></Card>:
+      <div style={{display:"flex",flexDirection:"column",gap:8}}>
+        {items.map((item,i)=>(
+          <div key={item.id||i} style={{background:C.bg2,border:`1px solid ${C.border}`,borderRadius:12,padding:"12px 14px",display:"flex",alignItems:"center",gap:10}}>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3}}>
+                <div style={{fontFamily:"'Cinzel',serif",fontSize:13,fontWeight:600,color:C.text}}>{item.name}</div>
+                {item.quantity>1&&<span style={{fontSize:10,fontWeight:700,color:C.gold}}>x{item.quantity}</span>}
+              </div>
+              <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                {item.type&&<span style={{fontSize:10,padding:"1px 6px",border:`1px solid ${C.border2}`,borderRadius:4,color:C.textDim}}>{item.type}</span>}
+                {item.weight>0&&<span style={{fontSize:10,color:C.textDim}}>⚖️ {((parseFloat(item.weight)||0)*(parseInt(item.quantity)||1)).toFixed(1)}kg</span>}
+                {item.value&&<span style={{fontSize:10,color:C.gold}}>💰 {item.value}</span>}
+              </div>
+              {item.description&&<div style={{fontSize:11,color:C.textDim,marginTop:3,fontStyle:"italic"}}>{item.description}</div>}
+            </div>
+            <div style={{display:"flex",gap:4,flexShrink:0}}>
+              <button onClick={()=>{setVals({...item});setModal(item);}} style={{background:"none",border:"none",color:C.textDim,cursor:"pointer",fontSize:14}}>✏</button>
+              <button onClick={()=>delItem(item.id)} style={{background:"none",border:"none",color:"#f87171",cursor:"pointer",fontSize:14}}>🗑</button>
+            </div>
+          </div>
+        ))}
+      </div>}
+
+    {/* Modal */}
+    {modal!==null&&<div onClick={()=>setModal(null)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.88)",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center",backdropFilter:"blur(4px)"}}>
+      <div onClick={e=>e.stopPropagation()} style={{background:C.bg2,border:`1px solid ${C.border2}`,borderRadius:16,maxWidth:440,width:"92%",padding:20,boxShadow:`0 0 40px ${C.goldGlow}`}}>
+        <div style={{fontFamily:"'Cinzel',serif",fontSize:15,fontWeight:600,color:C.gold,marginBottom:16}}>{modal?.id?"Modifica Oggetto":"Nuovo Oggetto"}</div>
+        <div style={{marginBottom:12}}><label style={lbl}>Nome</label><input value={vals.name||""} onChange={e=>setVals(v=>({...v,name:e.target.value}))} placeholder="es. Spada +1" style={inp}/></div>
+        <div style={{marginBottom:12}}>
+          <label style={lbl}>Tipo</label>
+          <select value={vals.type||"oggetto"} onChange={e=>setVals(v=>({...v,type:e.target.value}))} style={{...inp,cursor:"pointer"}}>
+            {["oggetto","arma","armatura","pozione","magia","monete","altro"].map(t=><option key={t} value={t} style={{background:C.bg2}}>{t}</option>)}
+          </select>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:12}}>
+          <div><label style={lbl}>Peso (kg)</label><input type="number" step="0.1" value={vals.weight||0} onChange={e=>setVals(v=>({...v,weight:e.target.value}))} style={inp}/></div>
+          <div><label style={lbl}>Quantità</label><input type="number" value={vals.quantity||1} onChange={e=>setVals(v=>({...v,quantity:e.target.value}))} style={inp}/></div>
+        </div>
+        <div style={{marginBottom:12}}><label style={lbl}>Valore</label><input value={vals.value||""} onChange={e=>setVals(v=>({...v,value:e.target.value}))} placeholder="es. 50 MO" style={inp}/></div>
+        <div style={{marginBottom:16}}><label style={lbl}>Descrizione</label><textarea value={vals.description||""} onChange={e=>setVals(v=>({...v,description:e.target.value}))} placeholder="Note sull'oggetto..." style={{...inp,minHeight:60,resize:"vertical"}}/></div>
+        <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
+          <Btn onClick={()=>setModal(null)}>Annulla</Btn>
+          <Btn primary onClick={saveItem} disabled={saving}>{saving?"Salvo...":"Salva"}</Btn>
+        </div>
+      </div>
+    </div>}
+  </div>;
+}
+
+
 // ── MERCATO VIEW ──
 function MercatoView({isAuth, data, onUpdate}){
   const [modal,setModal]=useState(null);
   const [vals,setVals]=useState({});
   const [imgFile,setImgFile]=useState(null);
   const [imgPreview,setImgPreview]=useState("");
-  const [catalogFile,setCatalogFile]=useState(null);
-  const [catalogPreview,setCatalogPreview]=useState("");
   const [saving,setSaving]=useState(false);
   const [detailOpen,setDetailOpen]=useState(null);
-  const [fullscreenImg,setFullscreenImg]=useState(null);
 
   const save=async()=>{
     setSaving(true);
@@ -1590,32 +1590,13 @@ function MercatoView({isAuth, data, onUpdate}){
         const ext=imgFile.name.split(".").pop();
         const path=`mercato/${Date.now()}.${ext}`;
         const {error:upErr}=await supabase.storage.from("npc-images").upload(path,imgFile,{upsert:true});
-        if(upErr){
-          alert("Errore upload immagine: "+upErr.message);
-          setSaving(false);
-          return;
-        }
-        const {data:u}=supabase.storage.from("npc-images").getPublicUrl(path);
-        imgUrl=u.publicUrl;
+        if(!upErr){const {data:u}=supabase.storage.from("npc-images").getPublicUrl(path);imgUrl=u.publicUrl;}
       }
-      let catalogUrl=vals.catalog_img_url||"";
-      if(catalogFile){
-        const ext=catalogFile.name.split(".").pop();
-        const path=`mercato/catalog_${Date.now()}.${ext}`;
-        const {error:upErr}=await supabase.storage.from("npc-images").upload(path,catalogFile,{upsert:true});
-        if(upErr){
-          alert("Errore upload immagine catalogo: "+upErr.message);
-          setSaving(false);
-          return;
-        }
-        const {data:u}=supabase.storage.from("npc-images").getPublicUrl(path);
-        catalogUrl=u.publicUrl;
-      }
-      const obj={...vals,img_url:imgUrl,catalog_img_url:catalogUrl};
+      const obj={...vals,img_url:imgUrl};
       delete obj.id; delete obj.created_at;
       if(modal?.id){await supabase.from("mercato").update(obj).eq("id",modal.id);}
       else{await supabase.from("mercato").insert(obj);}
-      setModal(null);setImgFile(null);setImgPreview("");setCatalogFile(null);setCatalogPreview("");onUpdate();
+      setModal(null);setImgFile(null);setImgPreview("");onUpdate();
     }catch(e){alert("Errore: "+e.message);}
     setSaving(false);
   };
@@ -1627,7 +1608,7 @@ function MercatoView({isAuth, data, onUpdate}){
 
   return <div>
     {isAuth&&<div style={{marginBottom:12}}>
-      <Btn primary onClick={()=>{setVals({name:"",location:"",description:"",img_url:"",catalog_img_url:""});setImgPreview("");setImgFile(null);setCatalogPreview("");setCatalogFile(null);setModal({});}}>+ Aggiungi Negozio</Btn>
+      <Btn primary onClick={()=>{setVals({name:"",location:"",description:"",img_url:""});setImgPreview("");setImgFile(null);setModal({});}}>+ Aggiungi Negozio</Btn>
     </div>}
 
     {!(data||[]).length?<EmptyState msg="Nessun negozio ancora"/>:
@@ -1640,9 +1621,8 @@ function MercatoView({isAuth, data, onUpdate}){
             <div style={{padding:"10px 12px"}}>
               <div style={{fontFamily:"'Cinzel',serif",fontSize:12,fontWeight:600,color:C.text,marginBottom:2}}>{s.name}</div>
               {s.location&&<div style={{fontSize:10,color:C.textDim}}>📍 {s.location}</div>}
-              {s.description&&<div style={{fontSize:10,color:C.textMuted,marginTop:4,display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden"}}>{s.description}</div>}
               {isAuth&&<div onClick={e=>{e.stopPropagation();}} style={{display:"flex",gap:4,marginTop:8}}>
-                <button onClick={()=>{setVals({...s});setImgPreview(s.img_url||"");setImgFile(null);setCatalogPreview(s.catalog_img_url||"");setCatalogFile(null);setModal(s);}} style={{background:"none",border:"none",color:C.textDim,cursor:"pointer",fontSize:12}}>✏</button>
+                <button onClick={()=>{setVals({...s});setImgPreview(s.img_url||"");setImgFile(null);setModal(s);}} style={{background:"none",border:"none",color:C.textDim,cursor:"pointer",fontSize:12}}>✏</button>
                 <button onClick={()=>del(s.id)} style={{background:"none",border:"none",color:"#f87171",cursor:"pointer",fontSize:12}}>🗑</button>
               </div>}
             </div>
@@ -1653,13 +1633,13 @@ function MercatoView({isAuth, data, onUpdate}){
     {/* Detail panel */}
     {detailOpen&&<div onClick={()=>setDetailOpen(null)} style={{position:"fixed",inset:0,zIndex:200,display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
       <div onClick={e=>e.stopPropagation()} style={{position:"absolute",inset:0,background:"rgba(0,0,0,.7)",backdropFilter:"blur(4px)"}}/>
-      <div style={{position:"relative",background:C.bg2,borderRadius:"20px 20px 0 0",border:`1px solid ${C.border2}`,width:"100%",maxWidth:960,maxHeight:"96vh",overflowY:"auto"}}>
+      <div style={{position:"relative",background:C.bg2,borderRadius:"20px 20px 0 0",border:`1px solid ${C.border2}`,width:"100%",maxWidth:640,maxHeight:"92vh",overflowY:"auto"}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"18px 20px 12px"}}>
           <span style={{fontFamily:"'Cinzel',serif",fontSize:20,fontWeight:700,color:C.gold}}>{detailOpen.name}</span>
           <button onClick={()=>setDetailOpen(null)} style={{background:"none",border:"none",fontSize:22,color:C.textDim,cursor:"pointer"}}>✕</button>
         </div>
-        {(detailOpen.catalog_img_url||detailOpen.img_url)&&<div style={{padding:"0 20px 16px"}}>
-          <img src={detailOpen.catalog_img_url||detailOpen.img_url} onClick={()=>setFullscreenImg(detailOpen.catalog_img_url||detailOpen.img_url)} style={{width:"100%",maxHeight:'none',objectFit:"contain",background:C.bg3,borderRadius:12,border:`1px solid ${C.border2}`,display:"block",cursor:"zoom-in"}}/>
+        {detailOpen.img_url&&<div style={{padding:"0 20px 16px"}}>
+          <img src={detailOpen.img_url} style={{width:"100%",maxHeight:400,objectFit:"contain",background:C.bg3,borderRadius:12,border:`1px solid ${C.border2}`,display:"block"}}/>
         </div>}
         <div style={{padding:"0 20px 32px"}}>
           {detailOpen.location&&<div style={{fontSize:13,color:C.textDim,marginBottom:8}}>📍 {detailOpen.location}</div>}
@@ -1668,36 +1648,18 @@ function MercatoView({isAuth, data, onUpdate}){
       </div>
     </div>}
 
-    {/* Fullscreen catalog image viewer */}
-    {fullscreenImg&&<div onClick={()=>setFullscreenImg(null)} style={{position:"fixed",inset:0,zIndex:400,background:"rgba(0,0,0,.95)",display:"flex",alignItems:"center",justifyContent:"center",cursor:"zoom-out",padding:16}}>
-      <img src={fullscreenImg} style={{maxWidth:"100%",maxHeight:"100%",objectFit:"contain"}}/>
-      <button onClick={()=>setFullscreenImg(null)} style={{position:"fixed",top:16,right:16,background:"rgba(0,0,0,.6)",border:`1px solid ${C.border2}`,borderRadius:"50%",width:40,height:40,color:C.text,fontSize:20,cursor:"pointer"}}>✕</button>
-    </div>}
-
     {/* Add/Edit Modal */}
     {modal!==null&&<div onClick={()=>setModal(null)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.88)",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center",backdropFilter:"blur(4px)"}}>
       <div onClick={e=>e.stopPropagation()} style={{background:C.bg2,border:`1px solid ${C.border2}`,borderRadius:16,maxWidth:480,width:"92%",maxHeight:"88vh",overflowY:"auto",padding:20,boxShadow:`0 0 40px ${C.goldGlow}`}}>
         <div style={{fontFamily:"'Cinzel',serif",fontSize:15,fontWeight:600,color:C.gold,marginBottom:16}}>{modal?.id?"Modifica Negozio":"Nuovo Negozio"}</div>
         <div style={{marginBottom:12}}>
-          <label style={lbl}>Immagine Copertina</label>
+          <label style={lbl}>Immagine</label>
           <div style={{marginTop:6,display:"flex",flexDirection:"column",gap:6}}>
             {imgPreview?<img src={imgPreview} style={{width:"100%",maxHeight:220,objectFit:"contain",background:C.bg3,borderRadius:10,border:`1px solid ${C.border2}`}}/>
               :<div style={{height:100,background:C.bg3,borderRadius:10,border:`2px dashed ${C.border2}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:32}}>🏪</div>}
             <label style={{background:C.bg3,border:`1px solid ${C.border2}`,borderRadius:8,padding:"7px 14px",cursor:"pointer",fontSize:12,color:C.textDim,textAlign:"center"}}>
-              📷 Scegli immagine copertina
+              📷 Scegli immagine
               <input type="file" accept="image/*" onChange={e=>{const f=e.target.files[0];if(f){setImgFile(f);setImgPreview(URL.createObjectURL(f));}}} style={{display:"none"}}/>
-            </label>
-          </div>
-        </div>
-        <div style={{marginBottom:12}}>
-          <label style={lbl}>Immagine Catalogo/Menu</label>
-          <div style={{fontSize:10,color:C.textMuted,marginBottom:6}}>Mostrata a schermo intero quando il giocatore apre il negozio</div>
-          <div style={{marginTop:6,display:"flex",flexDirection:"column",gap:6}}>
-            {catalogPreview?<img src={catalogPreview} style={{width:"100%",maxHeight:220,objectFit:"contain",background:C.bg3,borderRadius:10,border:`1px solid ${C.border2}`}}/>
-              :<div style={{height:100,background:C.bg3,borderRadius:10,border:`2px dashed ${C.border2}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:32}}>📜</div>}
-            <label style={{background:C.bg3,border:`1px solid ${C.border2}`,borderRadius:8,padding:"7px 14px",cursor:"pointer",fontSize:12,color:C.textDim,textAlign:"center"}}>
-              📷 Scegli immagine catalogo
-              <input type="file" accept="image/*" onChange={e=>{const f=e.target.files[0];if(f){setCatalogFile(f);setCatalogPreview(URL.createObjectURL(f));}}} style={{display:"none"}}/>
             </label>
           </div>
         </div>
@@ -1822,7 +1784,7 @@ function BestiaryView({isAuth, data, onUpdate}){
 
     {/* Add button */}
     {isAuth&&<div style={{marginBottom:12}}>
-      <Btn primary onClick={()=>{setVals({name:"",type:"Bestia",challenge_rating:"1",hp:"",description:"",attacks:"",img_url:""});setImgPreview("");setImgFile(null);setModal({});}}>+ Aggiungi Creatura</Btn>
+      <Btn primary onClick={()=>{setVals({name:"",type:"Bestia",challenge_rating:"1",hp:"",description:"",attacks:"",img_url:"",unlocked:false});setImgPreview("");setImgFile(null);setModal({});}}>+ Aggiungi Creatura</Btn>
     </div>}
 
     {/* List */}
@@ -1869,7 +1831,7 @@ function BestiaryView({isAuth, data, onUpdate}){
             {detailOpen.challenge_rating&&<span style={{fontSize:11,fontWeight:700,padding:"3px 10px",border:`1px solid ${crColor(detailOpen.challenge_rating)}`,borderRadius:6,color:crColor(detailOpen.challenge_rating)}}>GS {detailOpen.challenge_rating}</span>}
             {detailOpen.hp&&<span style={{fontSize:11,fontWeight:600,padding:"3px 10px",border:`1px solid #f87171`,borderRadius:6,color:"#f87171"}}>❤️ {detailOpen.hp} PF</span>}
           </div>
-          {detailOpen.description&&<LongText text={detailOpen.description}/>}
+          {detailOpen.description&&<div style={{fontSize:15,color:C.text,lineHeight:1.75,marginBottom:12}}>{detailOpen.description}</div>}
           {detailOpen.attacks&&<div style={{marginTop:8}}>
             <div style={{fontSize:10,fontWeight:700,letterSpacing:".2em",textTransform:"uppercase",color:C.gold,marginBottom:6}}>Attacchi</div>
             <div style={{fontSize:14,color:C.textDim,lineHeight:1.65}}>{detailOpen.attacks}</div>
@@ -1932,8 +1894,26 @@ function BestiaryView({isAuth, data, onUpdate}){
 function PlayerBestiaryView({data, userId, onUpdate}){
   const [search,setSearch]=useState("");
   const [detailOpen,setDetailOpen]=useState(null);
+  const [unlockSearch,setUnlockSearch]=useState("");
+  const [unlockResults,setUnlockResults]=useState([]);
+  const [searching,setSearching]=useState(false);
+  const [unlockMode,setUnlockMode]=useState(false);
 
   const filtered=(data||[]).filter(c=>c.name.toLowerCase().includes(search.toLowerCase()));
+
+  const searchCreature=async()=>{
+    if(!unlockSearch.trim())return;
+    setSearching(true);
+    const {data:res}=await supabase.from("bestiary").select("*").ilike("name",`%${unlockSearch}%`);
+    setUnlockResults(res||[]);
+    setSearching(false);
+  };
+
+  const unlock=async(creature)=>{
+    await supabase.from("bestiary").update({unlocked:true}).eq("id",creature.id);
+    setUnlockResults(r=>r.filter(x=>x.id!==creature.id));
+    onUpdate();
+  };
 
   const crColor=(cr)=>{
     const n=parseFloat(cr)||0;
@@ -1946,13 +1926,39 @@ function PlayerBestiaryView({data, userId, onUpdate}){
   const inp={width:"100%",background:C.bg,border:`1px solid ${C.border2}`,borderRadius:8,color:C.text,fontFamily:"inherit",fontSize:14,padding:"8px 12px",outline:"none",marginTop:4,boxSizing:"border-box"};
 
   return <div>
-    <div style={{marginBottom:16}}>
-      <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="🔍 Cerca nel bestiario..." style={{...inp,marginTop:0}}/>
+    <div style={{display:"flex",gap:8,marginBottom:16}}>
+      <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="🔍 Cerca nel bestiario..." style={{...inp,marginTop:0,flex:1}}/>
+      <Btn onClick={()=>setUnlockMode(m=>!m)} primary={unlockMode}>🔓 Sblocca</Btn>
     </div>
 
+    {/* Unlock mode */}
+    {unlockMode&&<Card style={{marginBottom:16}}>
+      <div style={{fontSize:10,fontWeight:700,letterSpacing:".2em",textTransform:"uppercase",color:C.gold,marginBottom:10}}>Sblocca Creatura</div>
+      <div style={{display:"flex",gap:8,marginBottom:10}}>
+        <input value={unlockSearch} onChange={e=>setUnlockSearch(e.target.value)} onKeyDown={e=>e.key==="Enter"&&searchCreature()} placeholder="Cerca nome creatura..." style={{...inp,marginTop:0,flex:1}}/>
+        <Btn primary onClick={searchCreature} disabled={searching}>{searching?"...":"Cerca"}</Btn>
+      </div>
+      {unlockResults.length>0&&<div style={{display:"flex",flexDirection:"column",gap:6}}>
+        {unlockResults.map((c,i)=>(
+          <div key={c.id||i} style={{display:"flex",alignItems:"center",gap:10,background:C.bg3,border:`1px solid ${C.border}`,borderRadius:10,padding:"10px 12px"}}>
+            <div style={{width:36,height:36,borderRadius:8,background:C.bg,border:`1px solid ${C.border2}`,flexShrink:0,overflow:"hidden",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>
+              {c.img_url?<img src={c.img_url} style={{width:"100%",height:"100%",objectFit:"cover"}}/>:"🐉"}
+            </div>
+            <div style={{flex:1}}>
+              <div style={{fontSize:13,fontWeight:600,color:C.text}}>{c.name}</div>
+              <div style={{fontSize:11,color:C.textDim}}>{c.type} · GS {c.challenge_rating}</div>
+            </div>
+            {c.unlocked
+              ?<span style={{fontSize:11,color:C.green}}>✓ Già sbloccato</span>
+              :<Btn primary onClick={()=>unlock(c)}>Sblocca</Btn>}
+          </div>
+        ))}
+      </div>}
+      {unlockResults.length===0&&unlockSearch&&!searching&&<div style={{textAlign:"center",padding:"20px",color:C.textMuted,fontSize:13}}>Nessuna creatura trovata</div>}
+    </Card>}
 
     {/* Unlocked list */}
-    {filtered.length===0?<EmptyState msg="Nessuna creatura nel bestiario"/>:
+    {filtered.length===0?<EmptyState msg="Nessuna creatura sbloccata — usa 🔓 Sblocca per aggiungerne!"/>:
       <div style={{display:"flex",flexDirection:"column",gap:8}}>
         {filtered.map((c,i)=>(
           <div key={c.id||i} onClick={()=>setDetailOpen(c)} style={{display:"flex",alignItems:"center",gap:12,background:C.bg2,border:`1px solid ${C.border}`,borderRadius:12,padding:"12px 14px",cursor:"pointer"}}>
@@ -1988,7 +1994,7 @@ function PlayerBestiaryView({data, userId, onUpdate}){
             {detailOpen.challenge_rating&&<span style={{fontSize:11,fontWeight:700,padding:"3px 10px",border:`1px solid ${crColor(detailOpen.challenge_rating)}`,borderRadius:6,color:crColor(detailOpen.challenge_rating)}}>GS {detailOpen.challenge_rating}</span>}
             {detailOpen.hp&&<span style={{fontSize:11,fontWeight:600,padding:"3px 10px",border:"1px solid #f87171",borderRadius:6,color:"#f87171"}}>❤️ {detailOpen.hp} PF</span>}
           </div>
-          {detailOpen.description&&<LongText text={detailOpen.description}/>}
+          {detailOpen.description&&<div style={{fontSize:15,color:C.text,lineHeight:1.75,marginBottom:12}}>{detailOpen.description}</div>}
           {detailOpen.attacks&&<div style={{marginTop:8}}>
             <div style={{fontSize:10,fontWeight:700,letterSpacing:".2em",textTransform:"uppercase",color:C.gold,marginBottom:6}}>Attacchi</div>
             <div style={{fontSize:14,color:C.textDim,lineHeight:1.65}}>{detailOpen.attacks}</div>
@@ -2276,7 +2282,7 @@ export default function App(){
     }catch(e){return null;}
   });
   const [authChecked,setAuthChecked]=useState(false);
-  const [data,setData]=useState({sessioni:[],npc:[],gilda:[],fazioni:[],mondo:[],cronologia:[],map_pins:[],map_config:null,bestiario:[],mercato:[],guild_rules:null});
+  const [data,setData]=useState({sessioni:[],npc:[],gilda:[],fazioni:[],mondo:[],cronologia:[],map_pins:[],map_config:null,bestiario:[],mercato:[]});
   const [loading,setLoading]=useState(true);
   const [view,setView]=useState("sessioni");
   const [sidebarOpen,setSidebarOpen]=useState(false);
@@ -2295,13 +2301,9 @@ export default function App(){
   const [pendingPin,setPendingPin]=useState(false);
   const [players,setPlayers]=useState([]);
   const [selectedPlayer,setSelectedPlayer]=useState(null);
-  const [rulesOpen,setRulesOpen]=useState(false);
-  const [rulesEditing,setRulesEditing]=useState(false);
-  const [rulesDraft,setRulesDraft]=useState("");
-  const [rulesSaving,setRulesSaving]=useState(false);
 
   const isAuth = user?.role==="dm";
-  const TITLES={sessioni:"Sessioni",npc:"NPC",mappa:"Mappa",gilda:"Gilda",fazioni:"Fazioni",mondo:"Fogli del Mondo",cronologia:"Cronologia",mercato:"Mercato",bestiario:"Bestiario Scoperto"};
+  const TITLES={sessioni:"Sessioni",npc:"NPC",mappa:"Mappa",gilda:"Gilda",fazioni:"Fazioni",mondo:"Fogli del Mondo",cronologia:"Cronologia",mercato:"Mercato",loot:"Loot di Gruppo",bestiario:"Bestiario Scoperto"};
 
   const handleLogin = (u) => {
     setUser(u);
@@ -2316,7 +2318,7 @@ export default function App(){
   const loadAll=async()=>{
     setLoading(true);
     try{
-      const [npcs,sessions,factions,locations,timeline,map_pins,map_config,playersRes,bestiary,mercatoRes,guildRulesRes]=await Promise.all([
+      const [npcs,sessions,factions,locations,timeline,map_pins,map_config,playersRes]=await Promise.all([
         supabase.from("npcs").select("*").order("created_at",{ascending:false}),
         supabase.from("sessions").select("*").order("created_at",{ascending:false}),
         supabase.from("factions").select("*").order("created_at",{ascending:false}),
@@ -2325,10 +2327,8 @@ export default function App(){
         supabase.from("map_pins").select("*").order("created_at",{ascending:false}),
         supabase.from("map_config").select("*").order("id"),
         supabase.from("player_characters").select("*").order("name"),
-        supabase.from("bestiary").select("*").order("name"),
-        supabase.from("mercato").select("*").order("name"),
-        supabase.from("guild_rules").select("*").limit(1),
       ]);
+      const bestiary = await supabase.from("bestiary").select("id,name,type,challenge_rating,hp,description,attacks,img_url,unlocked").order("name");
       const parsed=(playersRes.data||[]).map(p=>{
         if(typeof p.attacks==="string")try{p.attacks=JSON.parse(p.attacks);}catch(e){p.attacks=[];}
         if(!Array.isArray(p.attacks))p.attacks=[];
@@ -2344,8 +2344,6 @@ export default function App(){
       setData(d=>({...d,
         npc:npcs.data||[],sessioni:sessions.data||[],gilda:(factions.data||[]).filter(f=>f.tipo==="gilda"||(!f.tipo&&false)),
         fazioni:(factions.data||[]).filter(f=>f.tipo!=="gilda"),mondo:locations.data||[],cronologia:timeline.data||[],map_pins:map_pins.data||[],map_config:map_config.data?.[0]||null,
-        bestiario:bestiary.data||[],mercato:mercatoRes.data||[],
-        guild_rules:guildRulesRes.data?.[0]||null,
       }));
     }catch(e){console.error(e);}
     setLoading(false);
@@ -2388,21 +2386,6 @@ export default function App(){
 
   const openGenericAdd=()=>{setGenericVals({});setGenericModal({view,item:null});};
   const openGenericEdit=(v,item)=>{setGenericVals({...item});setGenericModal({view:v,item});};
-
-  const saveGuildRules=async()=>{
-    setRulesSaving(true);
-    try{
-      if(data.guild_rules?.id){
-        await supabase.from("guild_rules").update({text:rulesDraft,updated_at:new Date().toISOString()}).eq("id",data.guild_rules.id);
-      }else{
-        await supabase.from("guild_rules").insert({text:rulesDraft});
-      }
-      setRulesEditing(false);
-      await loadAll();
-    }catch(e){alert("Errore: "+e.message);}
-    setRulesSaving(false);
-  };
-
   const saveGeneric=async(imgUrl=null,imgField=null)=>{
     if(!genericModal)return;
     setSaving(true);
@@ -2482,11 +2465,6 @@ export default function App(){
             <div style={{fontFamily:"'Cinzel',serif",fontSize:18,fontWeight:700,color:C.gold,textShadow:`0 0 24px ${C.goldGlow}`}}>La Gilda</div>
             <div style={{fontSize:10,fontWeight:600,letterSpacing:".2em",textTransform:"uppercase",color:C.textMuted,marginTop:4}}>Fratellanza & Alleanze</div>
           </div>
-          <div onClick={()=>{setRulesDraft(data.guild_rules?.text||"");setRulesEditing(false);setRulesOpen(true);}} style={{display:"flex",alignItems:"center",gap:10,background:C.bg2,border:`1px solid ${C.border2}`,borderRadius:12,padding:"12px 14px",marginBottom:16,cursor:"pointer"}}>
-            <span style={{fontSize:18}}>📜</span>
-            <span style={{fontFamily:"'Cinzel',serif",fontSize:13,fontWeight:600,color:C.gold,flex:1}}>Regole di Gilda</span>
-            <span style={{fontSize:12,color:C.textMuted}}>Come funziona la fama ›</span>
-          </div>
           {!data.gilda.length?<EmptyState msg="Nessun gruppo nella gilda ancora"/>:
             gradiDM.map(grado=>{
               const gruppi=sortedGilda.filter(g=>g.grado===grado);
@@ -2515,26 +2493,6 @@ export default function App(){
               </div>;
             })
           }
-          {rulesOpen&&<div onClick={()=>setRulesOpen(false)} style={{position:"fixed",inset:0,zIndex:300,background:"rgba(0,0,0,.85)",backdropFilter:"blur(4px)",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
-            <div onClick={e=>e.stopPropagation()} style={{background:C.bg2,border:`1px solid ${C.border2}`,borderRadius:16,maxWidth:560,width:"100%",maxHeight:"80vh",overflowY:"auto",padding:24,boxShadow:`0 0 40px ${C.goldGlow}`}}>
-              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
-                <span style={{fontFamily:"'Cinzel',serif",fontSize:18,fontWeight:700,color:C.gold}}>📜 Regole di Gilda</span>
-                <button onClick={()=>setRulesOpen(false)} style={{background:"none",border:"none",fontSize:22,color:C.textDim,cursor:"pointer"}}>✕</button>
-              </div>
-              {rulesEditing?<>
-                <textarea value={rulesDraft} onChange={e=>setRulesDraft(e.target.value)} rows={14} placeholder="Scrivi qui le regole di gilda, come funziona la fama, ecc..." style={{width:"100%",background:C.bg,border:`1px solid ${C.border2}`,borderRadius:10,color:C.text,fontFamily:"inherit",fontSize:14,padding:12,outline:"none",boxSizing:"border-box",lineHeight:1.6,resize:"vertical"}}/>
-                <div style={{display:"flex",gap:8,marginTop:12}}>
-                  <Btn onClick={()=>{setRulesEditing(false);setRulesDraft(data.guild_rules?.text||"");}} style={{flex:1}}>Annulla</Btn>
-                  <Btn primary onClick={saveGuildRules} disabled={rulesSaving} style={{flex:1}}>{rulesSaving?"Salvataggio...":"Salva"}</Btn>
-                </div>
-              </>:<>
-                {data.guild_rules?.text
-                  ?<RulesText text={data.guild_rules.text}/>
-                  :<div style={{color:C.textMuted,fontSize:13,fontStyle:"italic",marginBottom:12}}>Nessuna regola scritta ancora.</div>}
-                <Btn primary onClick={()=>setRulesEditing(true)} style={{marginTop:12,width:"100%"}}>✏ {data.guild_rules?.text?"Modifica":"Scrivi"} regole</Btn>
-              </>}
-            </div>
-          </div>}
         </div>;
       }
       case "fazioni":return !data.fazioni.length?<EmptyState msg="Nessuna fazione ancora"/>:
@@ -2665,6 +2623,7 @@ export default function App(){
       }
 
       case "mercato": return <MercatoView isAuth={isAuth} data={data.mercato} onUpdate={loadAll}/>;
+      case "loot": return <LootView isAuth={isAuth}/>;
       case "bestiario": return <BestiaryView isAuth={isAuth} data={data.bestiario} onUpdate={loadAll}/>;
 
       case "bastioni": return <BastioniView isAuth={isAuth} onUpdate={loadAll}/>;
@@ -2711,6 +2670,9 @@ export default function App(){
         <div onClick={()=>nav("bastioni")} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 18px",cursor:"pointer",fontSize:13,color:view==="bastioni"?C.gold:C.textDim,background:view==="bastioni"?`rgba(212,160,23,.08)`:"transparent",borderLeft:`2px solid ${view==="bastioni"?C.gold:"transparent"}`}}>
           <span style={{fontSize:14,width:18,textAlign:"center"}}>⚓</span>Bastioni
         </div>
+        <div onClick={()=>nav("loot")} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 18px",cursor:"pointer",fontSize:13,color:view==="loot"?C.gold:C.textDim,background:view==="loot"?`rgba(212,160,23,.08)`:"transparent",borderLeft:`2px solid ${view==="loot"?C.gold:"transparent"}`}}>
+          <span style={{fontSize:14,width:18,textAlign:"center"}}>💰</span>Loot di Gruppo
+        </div>
         <div onClick={()=>nav("bestiario")} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 18px",cursor:"pointer",fontSize:13,color:view==="bestiario"?C.gold:C.textDim,background:view==="bestiario"?`rgba(212,160,23,.08)`:"transparent",borderLeft:`2px solid ${view==="bestiario"?C.gold:"transparent"}`}}>
           <span style={{fontSize:14,width:18,textAlign:"center"}}>🐉</span>Bestiario Scoperto
         </div>
@@ -2722,10 +2684,17 @@ export default function App(){
           {players.map((p,i)=>{
             const vkey = `player_${p.id}`;
             const name = p.name || "Player";
-            return <div key={i} onClick={()=>{setSelectedPlayer(p);nav(vkey);}} style={{display:"flex",alignItems:"center",gap:8,padding:"9px 18px",cursor:"pointer",background:view===vkey?`rgba(212,160,23,.08)`:"transparent",borderLeft:`2px solid ${view===vkey?C.gold:"transparent"}`}}>
-              <span style={{fontSize:14,flexShrink:0}}>{partyIcon(name)}</span>
-              <div style={{fontSize:13,color:view===vkey?C.gold:C.textDim,fontWeight:view===vkey?500:400}}>{name}</div>
-              <div style={{marginLeft:"auto",fontSize:10,color:C.textMuted}}>{p.hp}/{p.max_hp}</div>
+            const hpPct = p.max_hp>0?Math.max(0,Math.min(100,(p.hp/p.max_hp)*100)):0;
+            const hpColor = hpPct>60?C.green:hpPct>25?C.yellow:"#f87171";
+            return <div key={i} onClick={()=>{setSelectedPlayer(p);nav(vkey);}} style={{padding:"9px 18px",cursor:"pointer",background:view===vkey?`rgba(212,160,23,.08)`:"transparent",borderLeft:`2px solid ${view===vkey?C.gold:"transparent"}`}}>
+              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3}}>
+                <div style={{width:8,height:8,borderRadius:"50%",background:hpColor,flexShrink:0}}/>
+                <div style={{fontSize:13,color:view===vkey?C.gold:C.textDim,fontWeight:view===vkey?500:400}}>{name}</div>
+                <div style={{marginLeft:"auto",fontSize:10,color:C.textMuted}}>{p.hp}/{p.max_hp}</div>
+              </div>
+              <div style={{height:3,background:C.bg3,borderRadius:2,overflow:"hidden",marginLeft:16}}>
+                <div style={{height:"100%",width:`${hpPct}%`,background:hpColor,borderRadius:2}}/>
+              </div>
             </div>;
           })}
         </div>
