@@ -473,6 +473,9 @@ function PlayerView({user, onLogout}){
           ))}
         </div>;
       case "bastioni": return <BastioniView isAuth={false} onUpdate={()=>{}}/>;
+      case "mercato": return <MercatoView isAuth={false} data={campData.mercato} onUpdate={load}/>;
+      case "loot": return <LootView isAuth={false}/>;
+      case "bestiario": return <PlayerBestiaryView data={campData.bestiario} userId={user.userId} onUpdate={load}/>;
       case "mappa":{
         const mapImg=campData.map_config?.map_path;
         return <div>
@@ -1933,7 +1936,7 @@ function PlayerBestiaryView({data, userId, onUpdate}){
   const [searching,setSearching]=useState(false);
   const [unlockMode,setUnlockMode]=useState(false);
 
-  const filtered=(data||[]).filter(c=>c.name.toLowerCase().includes(search.toLowerCase()));
+  const filtered=(data||[]).filter(c=>c.unlocked&&c.name.toLowerCase().includes(search.toLowerCase()));
 
   const searchCreature=async()=>{
     if(!unlockSearch.trim())return;
