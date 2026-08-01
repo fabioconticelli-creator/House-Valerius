@@ -2357,7 +2357,7 @@ export default function App(){
   const loadAll=async()=>{
     setLoading(true);
     try{
-      const [npcs,sessions,factions,locations,timeline,map_pins,map_config,playersRes]=await Promise.all([
+      const [npcs,sessions,factions,locations,timeline,map_pins,map_config,playersRes,mercatoRes]=await Promise.all([
         supabase.from("npcs").select("*").order("created_at",{ascending:false}),
         supabase.from("sessions").select("*").order("created_at",{ascending:false}),
         supabase.from("factions").select("*").order("created_at",{ascending:false}),
@@ -2366,6 +2366,7 @@ export default function App(){
         supabase.from("map_pins").select("*").order("created_at",{ascending:false}),
         supabase.from("map_config").select("*").order("id"),
         supabase.from("player_characters").select("*").order("name"),
+        supabase.from("mercato").select("*").order("name"),
       ]);
       const bestiary = await supabase.from("bestiary").select("id,name,type,challenge_rating,hp,description,attacks,img_url,unlocked").order("name");
       const parsed=(playersRes.data||[]).map(p=>{
@@ -2383,6 +2384,7 @@ export default function App(){
       setData(d=>({...d,
         npc:npcs.data||[],sessioni:sessions.data||[],gilda:(factions.data||[]).filter(f=>f.tipo==="gilda"||(!f.tipo&&false)),
         fazioni:(factions.data||[]).filter(f=>f.tipo!=="gilda"),mondo:locations.data||[],cronologia:timeline.data||[],map_pins:map_pins.data||[],map_config:map_config.data?.[0]||null,
+        bestiario:bestiary.data||[],mercato:mercatoRes.data||[],
       }));
     }catch(e){console.error(e);}
     setLoading(false);
