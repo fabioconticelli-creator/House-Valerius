@@ -1952,7 +1952,10 @@ function BestiaryView({isAuth, data, onUpdate}){
       <div style={{position:"relative",background:C.bg2,borderRadius:"20px 20px 0 0",border:`1px solid ${C.border2}`,width:"100%",maxWidth:640,maxHeight:"92vh",overflowY:"auto"}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"18px 20px 12px"}}>
           <span style={{fontFamily:"'Cinzel',serif",fontSize:20,fontWeight:700,color:C.gold}}>{detailOpen.name}</span>
-          <button onClick={()=>setDetailOpen(null)} style={{background:"none",border:"none",fontSize:22,color:C.textDim,cursor:"pointer"}}>✕</button>
+          <div style={{display:"flex",gap:8,alignItems:"center"}}>
+            {isAuth&&<Btn onClick={()=>{setVals({...detailOpen});setImgPreview(detailOpen.img_url||"");setImgFile(null);setModal(detailOpen);setDetailOpen(null);}}>✏ Modifica</Btn>}
+            <button onClick={()=>setDetailOpen(null)} style={{background:"none",border:"none",fontSize:22,color:C.textDim,cursor:"pointer"}}>✕</button>
+          </div>
         </div>
         <div style={{padding:"0 20px 16px"}}>
           {(detailOpen.img_url||autoImg)?
