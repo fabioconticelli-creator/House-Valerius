@@ -1867,6 +1867,46 @@ function BestiaryView({isAuth, data, onUpdate}){
     return "#f87171";
   };
 
+  // Divide un testo unico incollato (con intestazioni HABITAT / COMPORTAMENTO / CURIOSITÀ)
+  // nei rispettivi campi. Il testo prima della prima intestazione diventa la descrizione.
+  const splitCreatureText = (raw) => {
+    const lines = raw.replace(/\r\n/g,"\n").split("\n");
+    const markers = [
+      {key:"habitat", re:/^\W*habitat\W*$/i},
+      {key:"comportamento", re:/^\W*comportamento\W*$/i},
+      {key:"curiosita", re:/^\W*curiosit[aà]\W*$/i},
+    ];
+    const sections = {intro:[], habitat:[], comportamento:[], curiosita:[]};
+    let current = "intro";
+    for(const line of lines){
+      const hit = markers.find(m=>m.re.test(line.trim()));
+      if(hit){ current = hit.key; continue; }
+      sections[current].push(line);
+    }
+    const join = arr => arr.join("\n").trim();
+    return {
+      description: join(sections.intro),
+      habitat: join(sections.habitat),
+      comportamento: join(sections.comportamento),
+      curiosita: join(sections.curiosita),
+    };
+  };
+
+  const handleDescriptionPaste = (e) => {
+    const text = e.clipboardData?.getData("text");
+    if(!text) return;
+    const parsed = splitCreatureText(text);
+    if(parsed.habitat||parsed.comportamento||parsed.curiosita){
+      e.preventDefault();
+      setVals(v=>({...v,
+        description: parsed.description,
+        habitat: parsed.habitat||v.habitat,
+        comportamento: parsed.comportamento||v.comportamento,
+        curiosita: parsed.curiosita||v.curiosita,
+      }));
+    }
+  };
+
   return <div>
     {/* Search bar */}
     <div style={{position:"relative",marginBottom:16}}>
@@ -1875,7 +1915,7 @@ function BestiaryView({isAuth, data, onUpdate}){
 
     {/* Add button */}
     {isAuth&&<div style={{marginBottom:12}}>
-      <Btn primary onClick={()=>{setVals({name:"",type:"Bestia",challenge_rating:"1",hp:"",description:"",attacks:"",img_url:"",unlocked:false});setImgPreview("");setImgFile(null);setModal({});}}>+ Aggiungi Creatura</Btn>
+      <Btn primary onClick={()=>{setVals({name:"",type:"Bestia",challenge_rating:"1",hp:"",description:"",habitat:"",comportamento:"",curiosita:"",attacks:"",img_url:"",unlocked:false});setImgPreview("");setImgFile(null);setModal({});}}>+ Aggiungi Creatura</Btn>
     </div>}
 
     {/* List */}
@@ -1922,10 +1962,22 @@ function BestiaryView({isAuth, data, onUpdate}){
             {detailOpen.challenge_rating&&<span style={{fontSize:11,fontWeight:700,padding:"3px 10px",border:`1px solid ${crColor(detailOpen.challenge_rating)}`,borderRadius:6,color:crColor(detailOpen.challenge_rating)}}>GS {detailOpen.challenge_rating}</span>}
             {detailOpen.hp&&<span style={{fontSize:11,fontWeight:600,padding:"3px 10px",border:`1px solid #f87171`,borderRadius:6,color:"#f87171"}}>❤️ {detailOpen.hp} PF</span>}
           </div>
-          {detailOpen.description&&<div style={{fontSize:15,color:C.text,lineHeight:1.75,marginBottom:12}}>{detailOpen.description}</div>}
-          {detailOpen.attacks&&<div style={{marginTop:8}}>
-            <div style={{fontSize:10,fontWeight:700,letterSpacing:".2em",textTransform:"uppercase",color:C.gold,marginBottom:6}}>Attacchi</div>
+          {detailOpen.description&&<div style={{fontSize:15,color:C.text,lineHeight:1.75,marginBottom:16,fontStyle:"italic"}}>{detailOpen.description}</div>}
+          {detailOpen.habitat&&<div style={{marginBottom:14}}>
+            <div style={{fontSize:11,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",color:"#5eead4",marginBottom:6}}>🗺️ Habitat</div>
+            <div style={{fontSize:14,color:C.textDim,lineHeight:1.65}}>{detailOpen.habitat}</div>
+          </div>}
+          {detailOpen.comportamento&&<div style={{marginBottom:14}}>
+            <div style={{fontSize:11,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",color:C.gold,marginBottom:6}}>⚔️ Comportamento</div>
+            <div style={{fontSize:14,color:C.textDim,lineHeight:1.65}}>{detailOpen.comportamento}</div>
+          </div>}
+          {detailOpen.attacks&&<div style={{marginBottom:14}}>
+            <div style={{fontSize:11,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",color:C.gold,marginBottom:6}}>Attacchi</div>
             <div style={{fontSize:14,color:C.textDim,lineHeight:1.65}}>{detailOpen.attacks}</div>
+          </div>}
+          {detailOpen.curiosita&&<div>
+            <div style={{fontSize:11,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",color:C.yellow,marginBottom:6}}>✨ Curiosità</div>
+            <div style={{fontSize:14,color:C.textDim,lineHeight:1.65}}>{detailOpen.curiosita}</div>
           </div>}
         </div>
       </div>
@@ -1967,7 +2019,16 @@ function BestiaryView({isAuth, data, onUpdate}){
           <div><label style={lbl}>Punti Ferita</label><input value={vals.hp||""} onChange={e=>setVals(v=>({...v,hp:e.target.value}))} placeholder="es. 95 (10d10+40)" style={inp}/></div>
         </div>
         {/* Description */}
-        <div style={{marginBottom:13}}><label style={lbl}>Descrizione</label><textarea value={vals.description||""} onChange={e=>setVals(v=>({...v,description:e.target.value}))} placeholder="Descrivi la creatura..." style={{...inp,minHeight:80,resize:"vertical"}}/></div>
+        <div style={{marginBottom:13}}>
+          <label style={lbl}>Descrizione</label>
+          <textarea value={vals.description||""} onChange={e=>setVals(v=>({...v,description:e.target.value}))} onPaste={handleDescriptionPaste} placeholder="Descrivi la creatura... (incolla un testo con intestazioni HABITAT / COMPORTAMENTO / CURIOSITÀ per dividerlo automaticamente nei campi sotto)" style={{...inp,minHeight:80,resize:"vertical"}}/>
+        </div>
+        {/* Habitat */}
+        <div style={{marginBottom:13}}><label style={lbl}>Habitat</label><input value={vals.habitat||""} onChange={e=>setVals(v=>({...v,habitat:e.target.value}))} placeholder="es. Foreste e paludi" style={inp}/></div>
+        {/* Comportamento */}
+        <div style={{marginBottom:13}}><label style={lbl}>Comportamento</label><textarea value={vals.comportamento||""} onChange={e=>setVals(v=>({...v,comportamento:e.target.value}))} placeholder="Come si comporta, tattiche, indole..." style={{...inp,minHeight:60,resize:"vertical"}}/></div>
+        {/* Curiosità */}
+        <div style={{marginBottom:13}}><label style={lbl}>Curiosità</label><textarea value={vals.curiosita||""} onChange={e=>setVals(v=>({...v,curiosita:e.target.value}))} placeholder="Fatti curiosi, leggende, debolezze note..." style={{...inp,minHeight:60,resize:"vertical"}}/></div>
         {/* Attacks */}
         <div style={{marginBottom:13}}><label style={lbl}>Attacchi</label><textarea value={vals.attacks||""} onChange={e=>setVals(v=>({...v,attacks:e.target.value}))} placeholder="es. Artigli: +7 colpire, 2d6+4 taglienti..." style={{...inp,minHeight:60,resize:"vertical"}}/></div>
         {/* Buttons */}
@@ -2085,10 +2146,22 @@ function PlayerBestiaryView({data, userId, onUpdate}){
             {detailOpen.challenge_rating&&<span style={{fontSize:11,fontWeight:700,padding:"3px 10px",border:`1px solid ${crColor(detailOpen.challenge_rating)}`,borderRadius:6,color:crColor(detailOpen.challenge_rating)}}>GS {detailOpen.challenge_rating}</span>}
             {detailOpen.hp&&<span style={{fontSize:11,fontWeight:600,padding:"3px 10px",border:"1px solid #f87171",borderRadius:6,color:"#f87171"}}>❤️ {detailOpen.hp} PF</span>}
           </div>
-          {detailOpen.description&&<div style={{fontSize:15,color:C.text,lineHeight:1.75,marginBottom:12}}>{detailOpen.description}</div>}
-          {detailOpen.attacks&&<div style={{marginTop:8}}>
-            <div style={{fontSize:10,fontWeight:700,letterSpacing:".2em",textTransform:"uppercase",color:C.gold,marginBottom:6}}>Attacchi</div>
+          {detailOpen.description&&<div style={{fontSize:15,color:C.text,lineHeight:1.75,marginBottom:16,fontStyle:"italic"}}>{detailOpen.description}</div>}
+          {detailOpen.habitat&&<div style={{marginBottom:14}}>
+            <div style={{fontSize:11,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",color:"#5eead4",marginBottom:6}}>🗺️ Habitat</div>
+            <div style={{fontSize:14,color:C.textDim,lineHeight:1.65}}>{detailOpen.habitat}</div>
+          </div>}
+          {detailOpen.comportamento&&<div style={{marginBottom:14}}>
+            <div style={{fontSize:11,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",color:C.gold,marginBottom:6}}>⚔️ Comportamento</div>
+            <div style={{fontSize:14,color:C.textDim,lineHeight:1.65}}>{detailOpen.comportamento}</div>
+          </div>}
+          {detailOpen.attacks&&<div style={{marginBottom:14}}>
+            <div style={{fontSize:11,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",color:C.gold,marginBottom:6}}>Attacchi</div>
             <div style={{fontSize:14,color:C.textDim,lineHeight:1.65}}>{detailOpen.attacks}</div>
+          </div>}
+          {detailOpen.curiosita&&<div>
+            <div style={{fontSize:11,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",color:C.yellow,marginBottom:6}}>✨ Curiosità</div>
+            <div style={{fontSize:14,color:C.textDim,lineHeight:1.65}}>{detailOpen.curiosita}</div>
           </div>}
         </div>
       </div>
@@ -2422,7 +2495,7 @@ export default function App(){
         supabase.from("player_characters").select("*").order("name"),
         supabase.from("mercato").select("*").order("name"),
       ]);
-      const bestiary = await supabase.from("bestiary").select("id,name,type,challenge_rating,hp,description,attacks,img_url,unlocked").order("name");
+      const bestiary = await supabase.from("bestiary").select("id,name,type,challenge_rating,hp,description,habitat,comportamento,curiosita,attacks,img_url,unlocked").order("name");
       const parsed=(playersRes.data||[]).map(p=>{
         if(typeof p.attacks==="string")try{p.attacks=JSON.parse(p.attacks);}catch(e){p.attacks=[];}
         if(!Array.isArray(p.attacks))p.attacks=[];
