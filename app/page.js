@@ -1468,7 +1468,11 @@ function LootView({isAuth}){
   const [coinsId, setCoinsId] = useState(null);
 
   const MAX_KG = 20;
-  const totalWeight = items.reduce((sum,i)=>(sum+(parseFloat(i.weight)||0)*(parseInt(i.quantity)||1)),0);
+  const COINS_PER_KG = 100;
+  const itemsWeight = items.reduce((sum,i)=>(sum+(parseFloat(i.weight)||0)*(parseInt(i.quantity)||1)),0);
+  const totalCoins = (parseInt(coins.mo)||0)+(parseInt(coins.ma)||0)+(parseInt(coins.mr)||0)+(parseInt(coins.mp)||0);
+  const coinsWeight = totalCoins/COINS_PER_KG;
+  const totalWeight = itemsWeight + coinsWeight;
   const weightPct = Math.min(100,(totalWeight/MAX_KG)*100);
   const weightColor = weightPct>90?"#f87171":weightPct>70?C.yellow:C.green;
 
@@ -1553,6 +1557,7 @@ function LootView({isAuth}){
       <div style={{height:8,background:C.bg4,borderRadius:4,overflow:"hidden"}}>
         <div style={{height:"100%",width:`${weightPct}%`,background:weightColor,borderRadius:4,transition:"width .3s"}}/>
       </div>
+      <div style={{fontSize:10,color:C.textMuted,marginTop:6,textAlign:"center"}}>Oggetti {itemsWeight.toFixed(1)}kg + Monete {coinsWeight.toFixed(2)}kg ({totalCoins} monete, 100 = 1kg)</div>
       {weightPct>90&&<div style={{fontSize:11,color:"#f87171",marginTop:6,textAlign:"center"}}>⚠️ Carico quasi al massimo!</div>}
     </Card>
 
