@@ -151,6 +151,24 @@ function LoginScreen({onLogin}){
 
 function NpcPanel({npc,onClose}){
   if(!npc)return null;
+  // Handle session objects (have num+title+excerpt instead of name)
+  const isSession = npc.excerpt !== undefined && npc.title !== undefined;
+  if(isSession) return <div style={{position:"fixed",inset:0,zIndex:200,display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
+    <div onClick={onClose} style={{position:"absolute",inset:0,background:"rgba(0,0,0,.7)",backdropFilter:"blur(4px)"}}/>
+    <div style={{position:"relative",background:C.bg2,borderRadius:"20px 20px 0 0",border:`1px solid ${C.border2}`,width:"100%",maxWidth:640,maxHeight:"85vh",overflowY:"auto"}}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"18px 20px 12px"}}>
+        <div>
+          {npc.num&&<div style={{fontSize:10,fontWeight:600,letterSpacing:".2em",textTransform:"uppercase",color:C.goldDim,marginBottom:4}}>Sessione {npc.num}</div>}
+          <span style={{fontFamily:"'Cinzel',serif",fontSize:20,fontWeight:700,color:C.gold}}>{npc.title}</span>
+        </div>
+        <button onClick={onClose} style={{background:"none",border:"none",fontSize:22,color:C.textDim,cursor:"pointer"}}>✕</button>
+      </div>
+      <div style={{padding:"0 20px 32px"}}>
+        {npc.date&&<div style={{fontSize:12,color:C.textMuted,marginBottom:16}}>📅 {npc.date}</div>}
+        {npc.excerpt&&<div style={{fontSize:15,color:C.text,lineHeight:1.8,fontStyle:"italic"}}>{npc.excerpt}</div>}
+      </div>
+    </div>
+  </div>;
   return <div style={{position:"fixed",inset:0,zIndex:200,display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
     <div onClick={onClose} style={{position:"absolute",inset:0,background:"rgba(0,0,0,.7)",backdropFilter:"blur(4px)"}}/>
     <div style={{position:"relative",background:C.bg2,borderRadius:"20px 20px 0 0",border:`1px solid ${C.border2}`,width:"100%",maxWidth:640,maxHeight:"92vh",overflowY:"auto"}}>
@@ -868,6 +886,22 @@ function PlayerView({user, onLogout}){
       </div>
 
       <NpcPanel npc={npcOpen} onClose={()=>setNpcOpen(null)}/>
+    {sessionOpen&&<div onClick={()=>setSessionOpen(null)} style={{position:"fixed",inset:0,zIndex:200,display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
+      <div onClick={e=>e.stopPropagation()} style={{position:"absolute",inset:0,background:"rgba(0,0,0,.7)",backdropFilter:"blur(4px)"}}/>
+      <div style={{position:"relative",background:C.bg2,borderRadius:"20px 20px 0 0",border:`1px solid ${C.border2}`,width:"100%",maxWidth:640,maxHeight:"85vh",overflowY:"auto"}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"18px 20px 12px"}}>
+          <div>
+            {sessionOpen.num&&<div style={{fontSize:10,fontWeight:600,letterSpacing:".2em",textTransform:"uppercase",color:C.goldDim,marginBottom:4}}>Sessione {sessionOpen.num}</div>}
+            <span style={{fontFamily:"'Cinzel',serif",fontSize:20,fontWeight:700,color:C.gold}}>{sessionOpen.title}</span>
+          </div>
+          <button onClick={()=>setSessionOpen(null)} style={{background:"none",border:"none",fontSize:22,color:C.textDim,cursor:"pointer"}}>✕</button>
+        </div>
+        <div style={{padding:"0 20px 32px"}}>
+          {sessionOpen.date&&<div style={{fontSize:12,color:C.textMuted,marginBottom:16}}>📅 {sessionOpen.date}</div>}
+          {sessionOpen.excerpt&&<div style={{fontSize:15,color:C.text,lineHeight:1.8,fontStyle:"italic"}}>{sessionOpen.excerpt}</div>}
+        </div>
+      </div>
+    </div>}
 
       {invModal!==null&&<div onClick={()=>setInvModal(null)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.88)",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center",backdropFilter:"blur(4px)"}}>
         <div onClick={e=>e.stopPropagation()} style={{background:C.bg2,border:`1px solid ${C.border2}`,borderRadius:16,maxWidth:440,width:"92%",padding:20,boxShadow:`0 0 40px ${C.goldGlow}`}}>
@@ -2288,6 +2322,7 @@ export default function App(){
   const [sidebarOpen,setSidebarOpen]=useState(false);
   const [npcOpen,setNpcOpen]=useState(null);
   const [npcModal,setNpcModal]=useState(null);
+  const [sessionOpen,setSessionOpen]=useState(null);
   const [genericModal,setGenericModal]=useState(null);
   const [genericVals,setGenericVals]=useState({});
   const [saving,setSaving]=useState(false);
@@ -2422,15 +2457,17 @@ export default function App(){
     if(loading)return <div style={{textAlign:"center",padding:"60px 20px",color:C.textDim,fontSize:14}}>Caricamento...</div>;
     switch(view){
       case "sessioni":return !data.sessioni.length?<EmptyState msg="Nessuna sessione ancora"/>:
-        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:12}}>
-          {data.sessioni.map((s,i)=>(
-            <div key={s.id||i} style={{background:C.bg2,border:`1px solid ${C.border}`,borderRadius:12,padding:16,position:"relative",overflow:"hidden"}}>
-              <div style={{position:"absolute",top:0,left:0,width:3,height:"100%",background:C.goldDim,borderRadius:"12px 0 0 12px"}}/>
-              <div style={{fontSize:10,fontWeight:600,letterSpacing:".2em",textTransform:"uppercase",color:C.goldDim}}>{s.num?`Sessione ${s.num}`:""}</div>
-              <div style={{fontFamily:"'Cinzel',serif",fontSize:14,fontWeight:600,color:C.text,margin:"5px 0 7px"}}>{s.title}</div>
-              <div style={{fontSize:13,color:C.textDim,lineHeight:1.55,fontStyle:"italic"}}>{s.excerpt}</div>
-              <div style={{fontSize:11,color:C.textMuted,marginTop:8}}>{s.date}</div>
-              <EditBtns v="sessioni" item={s}/>
+        <div style={{display:"flex",flexDirection:"column",gap:6}}>
+          {[...data.sessioni].sort((a,b)=>(parseInt(a.num)||0)-(parseInt(b.num)||0)).map((s,i)=>(
+            <div key={s.id||i} onClick={()=>setSessionOpen(s)} style={{display:"flex",alignItems:"center",gap:12,background:C.bg2,border:`1px solid ${C.border}`,borderRadius:12,padding:"12px 16px",cursor:"pointer",position:"relative",overflow:"hidden"}}>
+              <div style={{position:"absolute",top:0,left:0,width:3,height:"100%",background:C.goldDim}}/>
+              <div style={{fontFamily:"'Cinzel',serif",fontSize:12,fontWeight:700,color:C.goldDim,minWidth:80,flexShrink:0}}>{s.num?`Sess. ${s.num}`:""}</div>
+              <div style={{fontFamily:"'Cinzel',serif",fontSize:14,fontWeight:600,color:C.text,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.title}</div>
+              <div style={{fontSize:11,color:C.textMuted,flexShrink:0}}>{s.date}</div>
+              {isAuth&&<div onClick={e=>{e.stopPropagation();}} style={{display:"flex",gap:4,marginLeft:8}}>
+                <Btn onClick={()=>openGenericEdit("sessioni",s)}>✏</Btn>
+                <Btn onClick={()=>deleteGeneric("sessioni",s.id)}>✕</Btn>
+              </div>}
             </div>
           ))}
         </div>;
