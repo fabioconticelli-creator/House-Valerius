@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createClient } from "@supabase/supabase-js";
 
 const SUPABASE_URL = "https://nrnikfajuzilnglvyezm.supabase.co";
@@ -452,7 +452,9 @@ function PlayerView({user, onLogout}){
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(180px,1fr))",gap:12}}>
           {campData.mondo.map((w,i)=>(
             <div key={w.id||i} style={{background:C.bg2,border:`1px solid ${C.border}`,borderRadius:12,overflow:"hidden"}}>
-              <div style={{height:76,background:C.bg3,display:"flex",alignItems:"center",justifyContent:"center",fontSize:30,borderBottom:`1px solid ${C.border}`}}>{w.icon||"🌍"}</div>
+              {w.image_path
+                ?<img src={w.image_path} alt={w.name} style={{width:"100%",height:76,objectFit:"cover",display:"block",borderBottom:`1px solid ${C.border}`}}/>
+                :<div style={{height:76,background:C.bg3,display:"flex",alignItems:"center",justifyContent:"center",fontSize:30,borderBottom:`1px solid ${C.border}`}}>{w.icon||"🌍"}</div>}
               <div style={{padding:12}}>
                 <div style={{fontFamily:"'Cinzel',serif",fontSize:12,fontWeight:600,color:C.text}}>{w.name}</div>
                 <div style={{fontSize:11,color:C.textDim,fontStyle:"italic",marginTop:3,lineHeight:1.4}}>{w.sub}</div>
@@ -1297,7 +1299,7 @@ const TABLE_MAP = {
   sessioni:{table:"sessions",fields:[{id:"num",l:"Numero",ph:"es. I"},{id:"title",l:"Titolo",ph:"Titolo..."},{id:"date",l:"Data",type:"date"},{id:"excerpt",l:"Riassunto",ph:"Cosa è successo...",ta:true}]},
   gilda:{table:"factions",fields:[{id:"name",l:"Nome",ph:"Nome"},{id:"grado",l:"Grado",sel:["Ferro","Argento","Oro","Platino","Adamantio"]},{id:"description",l:"Descrizione",ph:"...",ta:true},{id:"sede",l:"Sede",ph:"es. Porto di Arenmar"},{id:"influence",l:"Fama %",ph:"0-100"}],tipo:"gilda",hasImage:true,imageBucket:"npc-images",imageField:"img_url"},
   fazioni:{table:"factions",fields:[{id:"name",l:"Nome",ph:"Nome"},{id:"icon",l:"Icona",ph:"⚔️"},{id:"description",l:"Descrizione",ph:"...",ta:true},{id:"influence",l:"Influenza %",ph:"0-100"}],tipo:"fazione"},
-  mondo:{table:"locations",fields:[{id:"name",l:"Nome",ph:"Nome"},{id:"icon",l:"Icona",ph:"🏰"},{id:"sub",l:"Descrizione",ph:"...",ta:true}]},
+  mondo:{table:"locations",fields:[{id:"name",l:"Nome",ph:"Nome"},{id:"icon",l:"Icona",ph:"🏰"},{id:"sub",l:"Descrizione",ph:"...",ta:true}],hasImage:true,imageBucket:"map-images",imageField:"image_path"},
   mercato:{table:"mercato",fields:[{id:"name",l:"Nome",ph:"es. Armeria di Brenor"},{id:"location",l:"Città/Luogo",ph:"es. Porto di Arenmar"},{id:"description",l:"Descrizione",ph:"Cosa vende...",ta:true}],hasImage:true,imageBucket:"npc-images",imageField:"img_url"},
   cronologia:{table:"timeline",fields:[{id:"date",l:"Data",ph:"Anno 1, Giorno X"},{id:"title",l:"Titolo",ph:"Evento..."},{id:"description",l:"Descrizione",ph:"Cosa accadde...",ta:true}],hasImage:true,imageBucket:"timeline-images",imageField:"image_path"},
 };
@@ -1476,10 +1478,12 @@ function LootView({isAuth}){
   const weightPct = Math.min(100,(totalWeight/MAX_KG)*100);
   const weightColor = weightPct>90?"#f87171":weightPct>70?C.yellow:C.green;
 
+  const coinsInsertRef = useRef(null);
+
   const load = async () => {
     const [lootRes, coinsRes] = await Promise.all([
       supabase.from("party_loot").select("*").order("created_at",{ascending:false}),
-      supabase.from("party_coins").select("*").limit(1),
+      supabase.from("party_coins").select("*").order("created_at",{ascending:true}).limit(1),
     ]);
     setItems(lootRes.data||[]);
     if(coinsRes.data?.[0]){
@@ -1497,10 +1501,23 @@ function LootView({isAuth}){
     if(coinsId){
       const {error} = await supabase.from("party_coins").update({[key]:parseInt(val)||0}).eq("id",coinsId);
       if(error) alert("Errore salvataggio monete: "+error.message);
+    } else if(coinsInsertRef.current){
+      // Un inserimento è già in corso: aspetta quello ed esegui l'update dopo
+      const id = await coinsInsertRef.current;
+      if(id){
+        const {error} = await supabase.from("party_coins").update({[key]:parseInt(val)||0}).eq("id",id);
+        if(error) alert("Errore salvataggio monete: "+error.message);
+      }
     } else {
-      const {data, error} = await supabase.from("party_coins").insert(newCoins).select().single();
-      if(error){ alert("Errore salvataggio monete: "+error.message); return; }
-      if(data?.id) setCoinsId(data.id);
+      const insertPromise = (async () => {
+        const {data, error} = await supabase.from("party_coins").insert(newCoins).select().single();
+        if(error){ alert("Errore salvataggio monete: "+error.message); return null; }
+        setCoinsId(data.id);
+        return data.id;
+      })();
+      coinsInsertRef.current = insertPromise;
+      await insertPromise;
+      coinsInsertRef.current = null;
     }
   };
 
@@ -2570,7 +2587,9 @@ export default function App(){
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(180px,1fr))",gap:12}}>
           {data.mondo.map((w,i)=>(
             <div key={w.id||i} style={{background:C.bg2,border:`1px solid ${C.border}`,borderRadius:12,overflow:"hidden"}}>
-              <div style={{height:76,background:C.bg3,display:"flex",alignItems:"center",justifyContent:"center",fontSize:30,borderBottom:`1px solid ${C.border}`}}>{w.icon||"🌍"}</div>
+              {w.image_path
+                ?<img src={w.image_path} alt={w.name} style={{width:"100%",height:76,objectFit:"cover",display:"block",borderBottom:`1px solid ${C.border}`}}/>
+                :<div style={{height:76,background:C.bg3,display:"flex",alignItems:"center",justifyContent:"center",fontSize:30,borderBottom:`1px solid ${C.border}`}}>{w.icon||"🌍"}</div>}
               <div style={{padding:12}}>
                 <div style={{fontFamily:"'Cinzel',serif",fontSize:12,fontWeight:600,color:C.text}}>{w.name}</div>
                 <div style={{fontSize:11,color:C.textDim,fontStyle:"italic",marginTop:3,lineHeight:1.4}}>{w.sub}</div>
