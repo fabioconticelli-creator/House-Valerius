@@ -1495,7 +1495,12 @@ function LootView({isAuth}){
     const newCoins = {...coins, [key]: parseInt(val)||0};
     setCoins(newCoins);
     if(coinsId){
-      await supabase.from("party_coins").update({[key]:parseInt(val)||0}).eq("id",coinsId);
+      const {error} = await supabase.from("party_coins").update({[key]:parseInt(val)||0}).eq("id",coinsId);
+      if(error) alert("Errore salvataggio monete: "+error.message);
+    } else {
+      const {data, error} = await supabase.from("party_coins").insert(newCoins).select().single();
+      if(error){ alert("Errore salvataggio monete: "+error.message); return; }
+      if(data?.id) setCoinsId(data.id);
     }
   };
 
