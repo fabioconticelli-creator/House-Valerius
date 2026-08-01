@@ -218,6 +218,7 @@ function PlayerView({user, onLogout}){
   const [view, setView] = useState("scheda");
   const [campData, setCampData] = useState({sessioni:[],npc:[],gilda:[],fazioni:[],mondo:[],cronologia:[],map_pins:[],map_config:null});
   const [npcOpen, setNpcOpen] = useState(null);
+  const [sessionOpen, setSessionOpen] = useState(null);
   const [allPlayers, setAllPlayers] = useState([]);
   const [selectedCompagno, setSelectedCompagno] = useState(null);
 
@@ -378,7 +379,7 @@ function PlayerView({user, onLogout}){
       case "sessioni": return !campData.sessioni.length?<EmptyState msg="Nessuna sessione ancora"/>:
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:12}}>
           {campData.sessioni.map((s,i)=>(
-            <div key={s.id||i} style={{background:C.bg2,border:`1px solid ${C.border}`,borderRadius:12,padding:16,position:"relative",overflow:"hidden"}}>
+            <div key={s.id||i} onClick={()=>setSessionOpen(s)} style={{background:C.bg2,border:`1px solid ${C.border}`,borderRadius:12,padding:16,position:"relative",overflow:"hidden",cursor:"pointer"}}>
               <div style={{position:"absolute",top:0,left:0,width:3,height:"100%",background:C.goldDim}}/>
               <div style={{fontSize:10,fontWeight:600,letterSpacing:".2em",textTransform:"uppercase",color:C.goldDim}}>{s.num?`Sessione ${s.num}`:""}</div>
               <div style={{fontFamily:"'Cinzel',serif",fontSize:14,fontWeight:600,color:C.text,margin:"5px 0 7px"}}>{s.title}</div>
