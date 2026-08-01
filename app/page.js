@@ -2758,6 +2758,22 @@ export default function App(){
       <div style={{flex:1,overflowY:"auto",padding:20}}>{renderContent()}</div>
     </div>
     <NpcPanel npc={npcOpen} onClose={()=>setNpcOpen(null)}/>
+    {sessionOpen&&<div onClick={()=>setSessionOpen(null)} style={{position:"fixed",inset:0,zIndex:200,display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
+      <div onClick={e=>e.stopPropagation()} style={{position:"absolute",inset:0,background:"rgba(0,0,0,.7)",backdropFilter:"blur(4px)"}}/>
+      <div style={{position:"relative",background:C.bg2,borderRadius:"20px 20px 0 0",border:`1px solid ${C.border2}`,width:"100%",maxWidth:640,maxHeight:"85vh",overflowY:"auto"}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"18px 20px 12px"}}>
+          <div>
+            {sessionOpen.num&&<div style={{fontSize:10,fontWeight:600,letterSpacing:".2em",textTransform:"uppercase",color:C.goldDim,marginBottom:4}}>Sessione {sessionOpen.num}</div>}
+            <span style={{fontFamily:"'Cinzel',serif",fontSize:20,fontWeight:700,color:C.gold}}>{sessionOpen.title}</span>
+          </div>
+          <button onClick={()=>setSessionOpen(null)} style={{background:"none",border:"none",fontSize:22,color:C.textDim,cursor:"pointer"}}>✕</button>
+        </div>
+        <div style={{padding:"0 20px 32px"}}>
+          {sessionOpen.date&&<div style={{fontSize:12,color:C.textMuted,marginBottom:16}}>📅 {sessionOpen.date}</div>}
+          {sessionOpen.excerpt&&<div style={{fontSize:15,color:C.text,lineHeight:1.8,fontStyle:"italic"}}>{sessionOpen.excerpt}</div>}
+        </div>
+      </div>
+    </div>}
     {npcModal&&<NpcFormModal npc={npcModal?.id?npcModal:null} onClose={()=>setNpcModal(null)} onSaved={()=>{setNpcModal(null);loadAll();}}/>}
     {genericModal&&<GenericModal
       title={genericModal.item?"Modifica":"Aggiungi"}
