@@ -1504,8 +1504,10 @@ function LootView({isAuth}){
         quantity: parseInt(vals.quantity)||1,
       };
       delete obj.id; delete obj.created_at;
-      if(modal?.id){ await supabase.from("party_loot").update(obj).eq("id",modal.id); }
-      else { await supabase.from("party_loot").insert(obj); }
+      const {error} = modal?.id
+        ? await supabase.from("party_loot").update(obj).eq("id",modal.id)
+        : await supabase.from("party_loot").insert(obj);
+      if(error){ alert("Errore: "+error.message); setSaving(false); return; }
       setModal(null); load();
     } catch(e){ alert("Errore: "+e.message); }
     setSaving(false);
