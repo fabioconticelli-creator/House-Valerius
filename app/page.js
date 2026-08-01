@@ -2469,8 +2469,10 @@ export default function App(){
     delete obj.id;delete obj.created_at;
     try{
       if(cfg.tipo && !obj.tipo) obj.tipo = cfg.tipo;
-      if(genericModal.item?.id){await supabase.from(cfg.table).update(obj).eq("id",genericModal.item.id);}
-      else{await supabase.from(cfg.table).insert(obj);}
+      const {error} = genericModal.item?.id
+        ? await supabase.from(cfg.table).update(obj).eq("id",genericModal.item.id)
+        : await supabase.from(cfg.table).insert(obj);
+      if(error){ alert("Errore: "+error.message); setSaving(false); return; }
       setGenericModal(null);loadAll();
     }catch(e){alert("Errore: "+e.message);}
     setSaving(false);
