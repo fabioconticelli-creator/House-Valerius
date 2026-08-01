@@ -1423,6 +1423,11 @@ function GenericModal({title,fields,vals,onClose,onSave,saving,onChange,hasImage
   const [imgPreview,setImgPreview]=useState(vals[imageField||"image_path"]||"");
   const inp={width:"100%",background:C.bg,border:`1px solid ${C.border2}`,borderRadius:8,color:C.text,fontFamily:"inherit",fontSize:14,padding:"8px 12px",outline:"none",marginTop:4,boxSizing:"border-box"};
   const handleSave=async()=>{
+    const requiredField=fields.find(f=>f.id==="name"||f.id==="title");
+    if(requiredField&&!String(vals[requiredField.id]||"").trim()){
+      alert(`Il campo "${requiredField.l}" è obbligatorio.`);
+      return;
+    }
     if(hasImage&&imgFile){
       const ext=imgFile.name.split(".").pop();
       const path=`${Date.now()}.${ext}`;
@@ -1483,8 +1488,10 @@ function LootView({isAuth}){
   const load = async () => {
     const [lootRes, coinsRes] = await Promise.all([
       supabase.from("party_loot").select("*").order("created_at",{ascending:false}),
-      supabase.from("party_coins").select("*").order("created_at",{ascending:true}).limit(1),
+      supabase.from("party_coins").select("*").order("updated_at",{ascending:true}).limit(1),
     ]);
+    if(lootRes.error) console.error("Errore caricamento loot:",lootRes.error.message);
+    if(coinsRes.error) console.error("Errore caricamento monete:",coinsRes.error.message);
     setItems(lootRes.data||[]);
     if(coinsRes.data?.[0]){
       setCoins(coinsRes.data[0]);
