@@ -219,6 +219,7 @@ function PlayerView({user, onLogout}){
   const [campData, setCampData] = useState({sessioni:[],npc:[],gilda:[],fazioni:[],mondo:[],cronologia:[],map_pins:[],map_config:null});
   const [npcOpen, setNpcOpen] = useState(null);
   const [sessionOpen, setSessionOpen] = useState(null);
+  const [worldOpen, setWorldOpen] = useState(null);
   const [allPlayers, setAllPlayers] = useState([]);
   const [selectedCompagno, setSelectedCompagno] = useState(null);
 
@@ -451,7 +452,7 @@ function PlayerView({user, onLogout}){
       case "mondo": return !campData.mondo.length?<EmptyState msg="Nessun luogo ancora"/>:
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(180px,1fr))",gap:12}}>
           {campData.mondo.map((w,i)=>(
-            <div key={w.id||i} style={{background:C.bg2,border:`1px solid ${C.border}`,borderRadius:12,overflow:"hidden"}}>
+            <div key={w.id||i} onClick={()=>setWorldOpen(w)} style={{background:C.bg2,border:`1px solid ${C.border}`,borderRadius:12,overflow:"hidden",cursor:"pointer"}}>
               {w.image_path
                 ?<img src={w.image_path} alt={w.name} style={{width:"100%",height:76,objectFit:"cover",display:"block",borderBottom:`1px solid ${C.border}`}}/>
                 :<div style={{height:76,background:C.bg3,display:"flex",alignItems:"center",justifyContent:"center",fontSize:30,borderBottom:`1px solid ${C.border}`}}>{w.icon||"🌍"}</div>}
@@ -905,6 +906,22 @@ function PlayerView({user, onLogout}){
         <div style={{padding:"0 20px 32px"}}>
           {sessionOpen.date&&<div style={{fontSize:12,color:C.textMuted,marginBottom:16}}>📅 {sessionOpen.date}</div>}
           {sessionOpen.excerpt&&<div style={{fontSize:15,color:C.text,lineHeight:1.8,fontStyle:"italic"}}>{sessionOpen.excerpt}</div>}
+        </div>
+      </div>
+    </div>}
+
+    {worldOpen&&<div onClick={()=>setWorldOpen(null)} style={{position:"fixed",inset:0,zIndex:200,display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
+      <div onClick={e=>e.stopPropagation()} style={{position:"absolute",inset:0,background:"rgba(0,0,0,.7)",backdropFilter:"blur(4px)"}}/>
+      <div style={{position:"relative",background:C.bg2,borderRadius:"20px 20px 0 0",border:`1px solid ${C.border2}`,width:"100%",maxWidth:640,maxHeight:"92vh",overflowY:"auto"}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"18px 20px 12px"}}>
+          <span style={{fontFamily:"'Cinzel',serif",fontSize:20,fontWeight:700,color:C.gold}}>{worldOpen.icon?`${worldOpen.icon} `:""}{worldOpen.name}</span>
+          <button onClick={()=>setWorldOpen(null)} style={{background:"none",border:"none",fontSize:22,color:C.textDim,cursor:"pointer"}}>✕</button>
+        </div>
+        {worldOpen.image_path&&<div style={{padding:"0 20px 16px"}}>
+          <img src={worldOpen.image_path} style={{width:"100%",maxHeight:420,objectFit:"contain",background:C.bg3,borderRadius:12,border:`1px solid ${C.border2}`,display:"block"}}/>
+        </div>}
+        <div style={{padding:"0 20px 32px"}}>
+          {worldOpen.sub&&<div style={{fontSize:15,color:C.text,lineHeight:1.8,fontStyle:"italic"}}>{worldOpen.sub}</div>}
         </div>
       </div>
     </div>}
@@ -2363,6 +2380,7 @@ export default function App(){
   const [npcOpen,setNpcOpen]=useState(null);
   const [npcModal,setNpcModal]=useState(null);
   const [sessionOpen,setSessionOpen]=useState(null);
+  const [worldOpen,setWorldOpen]=useState(null);
   const [genericModal,setGenericModal]=useState(null);
   const [genericVals,setGenericVals]=useState({});
   const [saving,setSaving]=useState(false);
@@ -2492,7 +2510,7 @@ export default function App(){
 
   const openAdd=()=>{if(view==="npc")openNpcAdd();else if(TABLE_MAP[view])openGenericAdd();};
 
-  const EditBtns=({v,item})=>isAuth?<div style={{display:"flex",gap:6,marginTop:10,paddingTop:9,borderTop:`1px solid ${C.border}`}}>
+  const EditBtns=({v,item})=>isAuth?<div onClick={e=>e.stopPropagation()} style={{display:"flex",gap:6,marginTop:10,paddingTop:9,borderTop:`1px solid ${C.border}`}}>
     <Btn onClick={()=>{if(v==="npc")openNpcEdit(item);else openGenericEdit(v,item);}}>✏ Modifica</Btn>
     <Btn onClick={()=>{if(v==="npc")deleteNpc(item.id);else deleteGeneric(v,item.id);}}>✕</Btn>
   </div>:null;
@@ -2595,7 +2613,7 @@ export default function App(){
       case "mondo":return !data.mondo.length?<EmptyState msg="Nessun luogo ancora"/>:
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(180px,1fr))",gap:12}}>
           {data.mondo.map((w,i)=>(
-            <div key={w.id||i} style={{background:C.bg2,border:`1px solid ${C.border}`,borderRadius:12,overflow:"hidden"}}>
+            <div key={w.id||i} onClick={()=>setWorldOpen(w)} style={{background:C.bg2,border:`1px solid ${C.border}`,borderRadius:12,overflow:"hidden",cursor:"pointer"}}>
               {w.image_path
                 ?<img src={w.image_path} alt={w.name} style={{width:"100%",height:76,objectFit:"cover",display:"block",borderBottom:`1px solid ${C.border}`}}/>
                 :<div style={{height:76,background:C.bg3,display:"flex",alignItems:"center",justifyContent:"center",fontSize:30,borderBottom:`1px solid ${C.border}`}}>{w.icon||"🌍"}</div>}
@@ -2811,6 +2829,22 @@ export default function App(){
         <div style={{padding:"0 20px 32px"}}>
           {sessionOpen.date&&<div style={{fontSize:12,color:C.textMuted,marginBottom:16}}>📅 {sessionOpen.date}</div>}
           {sessionOpen.excerpt&&<div style={{fontSize:15,color:C.text,lineHeight:1.8,fontStyle:"italic"}}>{sessionOpen.excerpt}</div>}
+        </div>
+      </div>
+    </div>}
+
+    {worldOpen&&<div onClick={()=>setWorldOpen(null)} style={{position:"fixed",inset:0,zIndex:200,display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
+      <div onClick={e=>e.stopPropagation()} style={{position:"absolute",inset:0,background:"rgba(0,0,0,.7)",backdropFilter:"blur(4px)"}}/>
+      <div style={{position:"relative",background:C.bg2,borderRadius:"20px 20px 0 0",border:`1px solid ${C.border2}`,width:"100%",maxWidth:640,maxHeight:"92vh",overflowY:"auto"}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"18px 20px 12px"}}>
+          <span style={{fontFamily:"'Cinzel',serif",fontSize:20,fontWeight:700,color:C.gold}}>{worldOpen.icon?`${worldOpen.icon} `:""}{worldOpen.name}</span>
+          <button onClick={()=>setWorldOpen(null)} style={{background:"none",border:"none",fontSize:22,color:C.textDim,cursor:"pointer"}}>✕</button>
+        </div>
+        {worldOpen.image_path&&<div style={{padding:"0 20px 16px"}}>
+          <img src={worldOpen.image_path} style={{width:"100%",maxHeight:420,objectFit:"contain",background:C.bg3,borderRadius:12,border:`1px solid ${C.border2}`,display:"block"}}/>
+        </div>}
+        <div style={{padding:"0 20px 32px"}}>
+          {worldOpen.sub&&<div style={{fontSize:15,color:C.text,lineHeight:1.8,fontStyle:"italic"}}>{worldOpen.sub}</div>}
         </div>
       </div>
     </div>}
