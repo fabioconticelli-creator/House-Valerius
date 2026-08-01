@@ -1867,28 +1867,32 @@ function BestiaryView({isAuth, data, onUpdate}){
     return "#f87171";
   };
 
-  // Divide un testo unico incollato (con intestazioni HABITAT / COMPORTAMENTO / CURIOSITÀ)
-  // nei rispettivi campi. Il testo prima della prima intestazione diventa la descrizione.
+  // Divide un testo unico incollato (con intestazioni HABITAT / COMPORTAMENTO / CURIOSITÀ,
+  // anche in mezzo al flusso del testo, senza andare a capo) nei rispettivi campi.
+  // Le intestazioni vengono riconosciute solo se scritte TUTTE IN MAIUSCOLO, per evitare
+  // di dividere per errore un testo che usa quelle parole normalmente in una frase.
   const splitCreatureText = (raw) => {
-    const lines = raw.replace(/\r\n/g,"\n").split("\n");
-    const markers = [
-      {key:"habitat", re:/^\W*habitat\W*$/i},
-      {key:"comportamento", re:/^\W*comportamento\W*$/i},
-      {key:"curiosita", re:/^\W*curiosit[aà]\W*$/i},
-    ];
-    const sections = {intro:[], habitat:[], comportamento:[], curiosita:[]};
-    let current = "intro";
-    for(const line of lines){
-      const hit = markers.find(m=>m.re.test(line.trim()));
-      if(hit){ current = hit.key; continue; }
-      sections[current].push(line);
+    const text = raw.replace(/\r\n/g,"\n");
+    const keyMap = {"HABITAT":"habitat","COMPORTAMENTO":"comportamento","CURIOSITA":"curiosita","CURIOSITÀ":"curiosita"};
+    const re = /(?<![A-ZÀ-Ù])(HABITAT|COMPORTAMENTO|CURIOSIT[AÀ])(?![A-ZÀ-Ù])/g;
+    const matches = [...text.matchAll(re)];
+    if(matches.length===0) return {description:text.trim(), habitat:"", comportamento:"", curiosita:""};
+    const sections = {description: text.slice(0, matches[0].index)};
+    for(let i=0;i<matches.length;i++){
+      const key = keyMap[matches[i][1]];
+      const start = matches[i].index + matches[i][0].length;
+      const end = i+1<matches.length ? matches[i+1].index : text.length;
+      sections[key] = (sections[key]?sections[key]+"\n":"") + text.slice(start,end);
     }
-    const join = arr => arr.join("\n").trim();
+    const clean = s => (s||"")
+      .replace(/^[\s\p{So}\p{S}\p{M}:;,.\-–—]+/u,"")
+      .replace(/[\s\p{So}\p{S}\p{M}]+$/u,"")
+      .trim();
     return {
-      description: join(sections.intro),
-      habitat: join(sections.habitat),
-      comportamento: join(sections.comportamento),
-      curiosita: join(sections.curiosita),
+      description: clean(sections.description),
+      habitat: clean(sections.habitat),
+      comportamento: clean(sections.comportamento),
+      curiosita: clean(sections.curiosita),
     };
   };
 
