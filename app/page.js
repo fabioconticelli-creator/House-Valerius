@@ -178,7 +178,7 @@ function NpcPanel({npc,onClose}){
       </div>
       <div style={{textAlign:"center",padding:"0 0 14px",color:C.goldDim,fontSize:12}}>✦</div>
       <div style={{padding:"0 20px 16px"}}>
-        {npc.img_url?<img src={npc.img_url} alt={npc.name} style={{width:"100%",maxHeight:480,borderRadius:12,border:`2px solid ${C.gold}`,objectFit:"contain",background:C.bg3,display:"block"}}/>
+        {npc.img_url?<img src={npc.img_url} alt={npc.name} style={{maxWidth:"100%",maxHeight:480,borderRadius:12,border:`2px solid ${C.gold}`,display:"block",margin:"0 auto"}}/>
           :<div style={{width:"100%",height:200,background:C.bg3,borderRadius:12,border:`1px solid ${C.border2}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:56}}>{npc.icon||"👤"}</div>}
       </div>
       <div style={{padding:"0 20px 32px"}}>
@@ -394,7 +394,7 @@ function PlayerView({user, onLogout}){
           {campData.npc.map((n,i)=>(
             <div key={n.id||i} style={{display:"flex",alignItems:"center",gap:12,background:C.bg2,border:`1px solid ${C.border}`,borderRadius:12,padding:"12px 14px",cursor:"pointer"}} onClick={()=>setNpcOpen(n)}>
               <div style={{width:48,height:48,borderRadius:10,background:C.bg3,border:`1px solid ${C.border2}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0,overflow:"hidden"}}>
-                {n.img_url?<img src={n.img_url} alt={n.name} style={{width:"100%",height:"100%",objectFit:"cover"}}/>:(n.icon||"👤")}
+                {n.img_url?<img src={n.img_url} alt={n.name} style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"center top"}}/>:(n.icon||"👤")}
               </div>
               <div style={{flex:1,minWidth:0}}>
                 <div style={{fontFamily:"'Cinzel',serif",fontSize:14,fontWeight:600,color:C.text}}>{n.name}</div>
@@ -2634,7 +2634,7 @@ export default function App(){
           {data.npc.map((n,i)=>(
             <div key={n.id||i} style={{display:"flex",alignItems:"center",gap:12,background:C.bg2,border:`1px solid ${C.border}`,borderRadius:12,padding:"12px 14px",cursor:"pointer"}} onClick={()=>setNpcOpen(n)}>
               <div style={{width:48,height:48,borderRadius:10,background:C.bg3,border:`1px solid ${C.border2}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0,overflow:"hidden"}}>
-                {n.img_url?<img src={n.img_url} alt={n.name} style={{width:"100%",height:"100%",objectFit:"cover"}}/>:(n.icon||"👤")}
+                {n.img_url?<img src={n.img_url} alt={n.name} style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"center top"}}/>:(n.icon||"👤")}
               </div>
               <div style={{flex:1,minWidth:0}}>
                 <div style={{fontFamily:"'Cinzel',serif",fontSize:14,fontWeight:600,color:C.text}}>{n.name}</div>
