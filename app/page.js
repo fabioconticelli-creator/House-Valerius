@@ -220,6 +220,7 @@ function PlayerView({user, onLogout}){
   const [npcOpen, setNpcOpen] = useState(null);
   const [sessionOpen, setSessionOpen] = useState(null);
   const [worldOpen, setWorldOpen] = useState(null);
+  const [zoomImg, setZoomImg] = useState(null);
   const [allPlayers, setAllPlayers] = useState([]);
   const [selectedCompagno, setSelectedCompagno] = useState(null);
 
@@ -918,12 +919,20 @@ function PlayerView({user, onLogout}){
           <button onClick={()=>setWorldOpen(null)} style={{background:"none",border:"none",fontSize:22,color:C.textDim,cursor:"pointer"}}>✕</button>
         </div>
         {worldOpen.image_path&&<div style={{padding:"0 20px 16px"}}>
-          <img src={worldOpen.image_path} style={{width:"100%",maxHeight:640,objectFit:"contain",background:C.bg3,borderRadius:12,border:`1px solid ${C.border2}`,display:"block",margin:"0 auto"}}/>
+          <div style={{position:"relative",cursor:"zoom-in"}} onClick={()=>setZoomImg(worldOpen.image_path)}>
+            <img src={worldOpen.image_path} style={{width:"100%",maxHeight:640,objectFit:"contain",background:C.bg3,borderRadius:12,border:`1px solid ${C.border2}`,display:"block",margin:"0 auto"}}/>
+            <div style={{position:"absolute",bottom:10,right:10,background:"rgba(0,0,0,.65)",borderRadius:8,padding:"5px 9px",fontSize:11,color:C.text,display:"flex",alignItems:"center",gap:5}}>🔍 Ingrandisci</div>
+          </div>
         </div>}
         <div style={{padding:"0 20px 32px"}}>
           {worldOpen.sub&&<div style={{fontSize:15,color:C.text,lineHeight:1.8,fontStyle:"italic"}}>{worldOpen.sub}</div>}
         </div>
       </div>
+    </div>}
+
+    {zoomImg&&<div onClick={()=>setZoomImg(null)} style={{position:"fixed",inset:0,zIndex:400,background:"rgba(0,0,0,.95)",display:"flex",alignItems:"center",justifyContent:"center",padding:16,cursor:"zoom-out"}}>
+      <img src={zoomImg} style={{maxWidth:"98vw",maxHeight:"98vh",objectFit:"contain",borderRadius:8}}/>
+      <button onClick={()=>setZoomImg(null)} style={{position:"absolute",top:16,right:20,background:"rgba(255,255,255,.1)",border:"none",borderRadius:8,fontSize:24,color:"#fff",cursor:"pointer",padding:"4px 12px"}}>✕</button>
     </div>}
 
       {invModal!==null&&<div onClick={()=>setInvModal(null)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.88)",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center",backdropFilter:"blur(4px)"}}>
@@ -2476,6 +2485,7 @@ export default function App(){
   const [npcModal,setNpcModal]=useState(null);
   const [sessionOpen,setSessionOpen]=useState(null);
   const [worldOpen,setWorldOpen]=useState(null);
+  const [zoomImg,setZoomImg]=useState(null);
   const [genericModal,setGenericModal]=useState(null);
   const [genericVals,setGenericVals]=useState({});
   const [saving,setSaving]=useState(false);
@@ -2936,12 +2946,20 @@ export default function App(){
           <button onClick={()=>setWorldOpen(null)} style={{background:"none",border:"none",fontSize:22,color:C.textDim,cursor:"pointer"}}>✕</button>
         </div>
         {worldOpen.image_path&&<div style={{padding:"0 20px 16px"}}>
-          <img src={worldOpen.image_path} style={{width:"100%",maxHeight:640,objectFit:"contain",background:C.bg3,borderRadius:12,border:`1px solid ${C.border2}`,display:"block",margin:"0 auto"}}/>
+          <div style={{position:"relative",cursor:"zoom-in"}} onClick={()=>setZoomImg(worldOpen.image_path)}>
+            <img src={worldOpen.image_path} style={{width:"100%",maxHeight:640,objectFit:"contain",background:C.bg3,borderRadius:12,border:`1px solid ${C.border2}`,display:"block",margin:"0 auto"}}/>
+            <div style={{position:"absolute",bottom:10,right:10,background:"rgba(0,0,0,.65)",borderRadius:8,padding:"5px 9px",fontSize:11,color:C.text,display:"flex",alignItems:"center",gap:5}}>🔍 Ingrandisci</div>
+          </div>
         </div>}
         <div style={{padding:"0 20px 32px"}}>
           {worldOpen.sub&&<div style={{fontSize:15,color:C.text,lineHeight:1.8,fontStyle:"italic"}}>{worldOpen.sub}</div>}
         </div>
       </div>
+    </div>}
+
+    {zoomImg&&<div onClick={()=>setZoomImg(null)} style={{position:"fixed",inset:0,zIndex:400,background:"rgba(0,0,0,.95)",display:"flex",alignItems:"center",justifyContent:"center",padding:16,cursor:"zoom-out"}}>
+      <img src={zoomImg} style={{maxWidth:"98vw",maxHeight:"98vh",objectFit:"contain",borderRadius:8}}/>
+      <button onClick={()=>setZoomImg(null)} style={{position:"absolute",top:16,right:20,background:"rgba(255,255,255,.1)",border:"none",borderRadius:8,fontSize:24,color:"#fff",cursor:"pointer",padding:"4px 12px"}}>✕</button>
     </div>}
     {npcModal&&<NpcFormModal npc={npcModal?.id?npcModal:null} onClose={()=>setNpcModal(null)} onSaved={()=>{setNpcModal(null);loadAll();}}/>}
     {genericModal&&<GenericModal
