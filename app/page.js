@@ -370,9 +370,9 @@ function PlayerView({user, onLogout}){
   ];
   const partyNavItems=[
     {v:"bastioni",icon:"⚓",label:"Bastioni"},
-    {v:"loot",icon:"💰",label:"Loot di Gruppo"},
     {v:"bestiario",icon:"🐉",label:"Bestiario Scoperto"},
     {v:"creazione",icon:"🔨",label:"Creazione"},
+    {v:"loot",icon:"💰",label:"Loot di Gruppo"},
   ];
 
   if(loading) return <div style={{minHeight:"100vh",background:C.bg,display:"flex",alignItems:"center",justifyContent:"center",color:C.textDim,fontSize:14}}>Caricamento...</div>;
@@ -1789,7 +1789,7 @@ function CreazioneView({isAuth}){
 
     {!items.length?<EmptyState msg="Nessun materiale ancora"/>:
       <div style={{display:"flex",flexDirection:"column",gap:10}}>
-        {items.map(item=>{
+        {[...items].sort((a,b)=>a.nome.localeCompare(b.nome,"it",{sensitivity:"base"})).map(item=>{
           const cur = parseInt(item.attuale)||0;
           const req = parseInt(item.richiesto)||1;
           const pct = Math.min(100,(cur/req)*100);
@@ -3083,14 +3083,14 @@ export default function App(){
         <div onClick={()=>nav("bastioni")} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 18px",cursor:"pointer",fontSize:13,color:view==="bastioni"?C.gold:C.textDim,background:view==="bastioni"?`rgba(212,160,23,.08)`:"transparent",borderLeft:`2px solid ${view==="bastioni"?C.gold:"transparent"}`}}>
           <span style={{fontSize:14,width:18,textAlign:"center"}}>⚓</span>Bastioni
         </div>
-        <div onClick={()=>nav("loot")} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 18px",cursor:"pointer",fontSize:13,color:view==="loot"?C.gold:C.textDim,background:view==="loot"?`rgba(212,160,23,.08)`:"transparent",borderLeft:`2px solid ${view==="loot"?C.gold:"transparent"}`}}>
-          <span style={{fontSize:14,width:18,textAlign:"center"}}>💰</span>Loot di Gruppo
-        </div>
         <div onClick={()=>nav("bestiario")} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 18px",cursor:"pointer",fontSize:13,color:view==="bestiario"?C.gold:C.textDim,background:view==="bestiario"?`rgba(212,160,23,.08)`:"transparent",borderLeft:`2px solid ${view==="bestiario"?C.gold:"transparent"}`}}>
           <span style={{fontSize:14,width:18,textAlign:"center"}}>🐉</span>Bestiario Scoperto
         </div>
         <div onClick={()=>nav("creazione")} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 18px",cursor:"pointer",fontSize:13,color:view==="creazione"?C.gold:C.textDim,background:view==="creazione"?`rgba(212,160,23,.08)`:"transparent",borderLeft:`2px solid ${view==="creazione"?C.gold:"transparent"}`}}>
           <span style={{fontSize:14,width:18,textAlign:"center"}}>🔨</span>Creazione
+        </div>
+        <div onClick={()=>nav("loot")} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 18px",cursor:"pointer",fontSize:13,color:view==="loot"?C.gold:C.textDim,background:view==="loot"?`rgba(212,160,23,.08)`:"transparent",borderLeft:`2px solid ${view==="loot"?C.gold:"transparent"}`}}>
+          <span style={{fontSize:14,width:18,textAlign:"center"}}>💰</span>Loot di Gruppo
         </div>
       </div>
       {players.length>0&&<>
