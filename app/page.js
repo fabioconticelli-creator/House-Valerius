@@ -372,6 +372,7 @@ function PlayerView({user, onLogout}){
     {v:"bastioni",icon:"⚓",label:"Bastioni"},
     {v:"loot",icon:"💰",label:"Loot di Gruppo"},
     {v:"bestiario",icon:"🐉",label:"Bestiario Scoperto"},
+    {v:"creazione",icon:"🔨",label:"Creazione"},
   ];
 
   if(loading) return <div style={{minHeight:"100vh",background:C.bg,display:"flex",alignItems:"center",justifyContent:"center",color:C.textDim,fontSize:14}}>Caricamento...</div>;
@@ -481,6 +482,7 @@ function PlayerView({user, onLogout}){
       case "mercato": return <MercatoView isAuth={false} data={campData.mercato} onUpdate={load}/>;
       case "loot": return <LootView isAuth={false}/>;
       case "bestiario": return <PlayerBestiaryView data={campData.bestiario} userId={user.userId} onUpdate={load}/>;
+      case "creazione": return <CreazioneView isAuth={false}/>;
       case "mappa":{
         const mapImg=campData.map_config?.map_path;
         return <div>
@@ -1673,6 +1675,130 @@ function LootView({isAuth}){
 }
 
 
+// ── CREAZIONE VIEW ──
+function CreazioneView({isAuth}){
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [modal, setModal] = useState(null);
+  const [vals, setVals] = useState({});
+  const [saving, setSaving] = useState(false);
+
+  const load = async () => {
+    const {data, error} = await supabase.from("materiali_costruzione").select("*").order("created_at",{ascending:true});
+    if(error) console.error("Errore caricamento materiali:",error.message);
+    setItems(data||[]);
+    setLoading(false);
+  };
+
+  useEffect(()=>{ load(); },[]);
+
+  const allComplete = items.length>0 && items.every(i=>(parseInt(i.attuale)||0)>=(parseInt(i.richiesto)||1));
+
+  const bump = async (item, delta) => {
+    const next = Math.max(0, (parseInt(item.attuale)||0) + delta);
+    setItems(list=>list.map(i=>i.id===item.id?{...i,attuale:next}:i));
+    const {error} = await supabase.from("materiali_costruzione").update({attuale:next}).eq("id",item.id);
+    if(error) alert("Errore: "+error.message);
+  };
+
+  const save = async () => {
+    setSaving(true);
+    try{
+      const obj = {
+        nome: vals.nome||"",
+        richiesto: parseInt(vals.richiesto)||1,
+        attuale: parseInt(vals.attuale)||0,
+      };
+      if(!obj.nome.trim()){ alert("Il campo Nome è obbligatorio."); setSaving(false); return; }
+      const {error} = modal?.id
+        ? await supabase.from("materiali_costruzione").update(obj).eq("id",modal.id)
+        : await supabase.from("materiali_costruzione").insert(obj);
+      if(error){ alert("Errore: "+error.message); setSaving(false); return; }
+      setModal(null); load();
+    }catch(e){ alert("Errore: "+e.message); }
+    setSaving(false);
+  };
+
+  const del = async (id) => {
+    if(!window.confirm("Eliminare questo materiale?")) return;
+    const {error} = await supabase.from("materiali_costruzione").delete().eq("id",id);
+    if(error){ alert("Errore: "+error.message); return; }
+    load();
+  };
+
+  if(loading) return <div style={{textAlign:"center",padding:40,color:C.textMuted}}>Carico...</div>;
+
+  return <div>
+    <div style={{textAlign:"center",padding:"16px 0 20px"}}>
+      <div style={{fontFamily:"'Cinzel',serif",fontSize:18,fontWeight:700,color:C.gold,textShadow:`0 0 24px ${C.goldGlow}`}}>🔨 Creazione</div>
+      <div style={{fontSize:10,fontWeight:600,letterSpacing:".2em",textTransform:"uppercase",color:C.textMuted,marginTop:4}}>Materiali per la riparazione della nave</div>
+    </div>
+
+    {allComplete&&<Card style={{marginBottom:16,textAlign:"center",border:`1px solid ${C.green}`,background:"rgba(74,222,128,.08)"}}>
+      <div style={{fontSize:14,fontWeight:700,color:C.green}}>⚓ Tutti i materiali raccolti! La nave può essere riparata.</div>
+    </Card>}
+
+    {isAuth&&<div style={{textAlign:"right",marginBottom:12}}>
+      <Btn primary onClick={()=>{setVals({nome:"",attuale:"0",richiesto:"50"});setModal({});}}>+ Aggiungi Materiale</Btn>
+    </div>}
+
+    {!items.length?<EmptyState msg="Nessun materiale ancora"/>:
+      <div style={{display:"flex",flexDirection:"column",gap:10}}>
+        {items.map(item=>{
+          const cur = parseInt(item.attuale)||0;
+          const req = parseInt(item.richiesto)||1;
+          const pct = Math.min(100,(cur/req)*100);
+          const done = cur>=req;
+          const barColor = done?C.green:pct>60?C.yellow:C.gold;
+          return <Card key={item.id}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
+              <div style={{fontFamily:"'Cinzel',serif",fontSize:14,fontWeight:600,color:done?C.green:C.text}}>{done?"✅ ":""}{item.nome}</div>
+              <div style={{fontSize:13,fontWeight:700,color:barColor}}>{cur} / {req}</div>
+            </div>
+            <div style={{height:8,background:C.bg4,borderRadius:4,overflow:"hidden",marginBottom:10}}>
+              <div style={{height:"100%",width:`${pct}%`,background:barColor,borderRadius:4,transition:"width .3s"}}/>
+            </div>
+            <div style={{display:"flex",gap:8,alignItems:"center"}}>
+              <Btn onClick={()=>bump(item,-1)}>−</Btn>
+              <Btn onClick={()=>bump(item,1)}>+</Btn>
+              <Btn onClick={()=>bump(item,5)}>+5</Btn>
+              {isAuth&&<div style={{marginLeft:"auto",display:"flex",gap:6}}>
+                <Btn onClick={()=>{setVals({nome:item.nome,attuale:String(item.attuale||0),richiesto:String(item.richiesto||1)});setModal(item);}}>✏ Modifica</Btn>
+                <Btn onClick={()=>del(item.id)}>✕</Btn>
+              </div>}
+            </div>
+          </Card>;
+        })}
+      </div>
+    }
+
+    {modal&&<div onClick={()=>setModal(null)} style={{position:"fixed",inset:0,zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:20,background:"rgba(0,0,0,.8)",backdropFilter:"blur(4px)"}}>
+      <div onClick={e=>e.stopPropagation()} style={{background:C.bg2,borderRadius:20,border:`1px solid ${C.border2}`,width:"100%",maxWidth:420,padding:20}}>
+        <div style={{fontFamily:"'Cinzel',serif",fontSize:18,fontWeight:700,color:C.gold,marginBottom:16}}>{modal.id?"Modifica Materiale":"Nuovo Materiale"}</div>
+        <div style={{marginBottom:13}}>
+          <label style={{fontSize:10,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",color:C.textMuted,display:"block",marginBottom:5}}>Nome</label>
+          <input value={vals.nome||""} onChange={e=>setVals(v=>({...v,nome:e.target.value}))} placeholder="es. Legno" style={{width:"100%",background:C.bg3,border:`1px solid ${C.border2}`,borderRadius:8,padding:"9px 12px",color:C.text,fontSize:14}}/>
+        </div>
+        <div style={{display:"flex",gap:10,marginBottom:16}}>
+          <div style={{flex:1}}>
+            <label style={{fontSize:10,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",color:C.textMuted,display:"block",marginBottom:5}}>Attuale</label>
+            <input type="number" value={vals.attuale||"0"} onChange={e=>setVals(v=>({...v,attuale:e.target.value}))} style={{width:"100%",background:C.bg3,border:`1px solid ${C.border2}`,borderRadius:8,padding:"9px 12px",color:C.text,fontSize:14}}/>
+          </div>
+          <div style={{flex:1}}>
+            <label style={{fontSize:10,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",color:C.textMuted,display:"block",marginBottom:5}}>Richiesto</label>
+            <input type="number" value={vals.richiesto||"50"} onChange={e=>setVals(v=>({...v,richiesto:e.target.value}))} style={{width:"100%",background:C.bg3,border:`1px solid ${C.border2}`,borderRadius:8,padding:"9px 12px",color:C.text,fontSize:14}}/>
+          </div>
+        </div>
+        <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
+          <Btn onClick={()=>setModal(null)}>Annulla</Btn>
+          <Btn primary onClick={save} disabled={saving}>{saving?"Salvo...":"Salva"}</Btn>
+        </div>
+      </div>
+    </div>}
+  </div>;
+}
+
+
 // ── MERCATO VIEW ──
 function MercatoView({isAuth, data, onUpdate}){
   const [modal,setModal]=useState(null);
@@ -2501,7 +2627,7 @@ export default function App(){
   const [selectedPlayer,setSelectedPlayer]=useState(null);
 
   const isAuth = user?.role==="dm";
-  const TITLES={sessioni:"Sessioni",npc:"NPC",mappa:"Mappa",gilda:"Gilda",fazioni:"Fazioni",mondo:"Fogli del Mondo",cronologia:"Cronologia",mercato:"Mercato",loot:"Loot di Gruppo",bestiario:"Bestiario Scoperto"};
+  const TITLES={sessioni:"Sessioni",npc:"NPC",mappa:"Mappa",gilda:"Gilda",fazioni:"Fazioni",mondo:"Fogli del Mondo",cronologia:"Cronologia",mercato:"Mercato",loot:"Loot di Gruppo",bestiario:"Bestiario Scoperto",creazione:"Creazione"};
 
   const handleLogin = (u) => {
     setUser(u);
@@ -2831,6 +2957,7 @@ export default function App(){
       case "mercato": return <MercatoView isAuth={isAuth} data={data.mercato} onUpdate={loadAll}/>;
       case "loot": return <LootView isAuth={isAuth}/>;
       case "bestiario": return <BestiaryView isAuth={isAuth} data={data.bestiario} onUpdate={loadAll}/>;
+      case "creazione": return <CreazioneView isAuth={isAuth}/>;
 
       case "bastioni": return <BastioniView isAuth={isAuth} onUpdate={loadAll}/>;
 
@@ -2881,6 +3008,9 @@ export default function App(){
         </div>
         <div onClick={()=>nav("bestiario")} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 18px",cursor:"pointer",fontSize:13,color:view==="bestiario"?C.gold:C.textDim,background:view==="bestiario"?`rgba(212,160,23,.08)`:"transparent",borderLeft:`2px solid ${view==="bestiario"?C.gold:"transparent"}`}}>
           <span style={{fontSize:14,width:18,textAlign:"center"}}>🐉</span>Bestiario Scoperto
+        </div>
+        <div onClick={()=>nav("creazione")} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 18px",cursor:"pointer",fontSize:13,color:view==="creazione"?C.gold:C.textDim,background:view==="creazione"?`rgba(212,160,23,.08)`:"transparent",borderLeft:`2px solid ${view==="creazione"?C.gold:"transparent"}`}}>
+          <span style={{fontSize:14,width:18,textAlign:"center"}}>🔨</span>Creazione
         </div>
       </div>
       {players.length>0&&<>
