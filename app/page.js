@@ -1833,7 +1833,7 @@ function BestiaryView({isAuth, data, onUpdate}){
   const TYPES=["Bestia","Umanoide","Non morto","Demone","Drago","Costrutto","Fata","Gigante","Melma","Pianta","Aberrazione","Elementale","Celeste","Mostruosità"];
   const CR=["0","1/8","1/4","1/2","1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24","25","26","27","28","29","30"];
 
-  const filtered=(data||[]).filter(c=>c.name.toLowerCase().includes(search.toLowerCase()));
+  const filtered=(data||[]).filter(c=>c.name.toLowerCase().includes(search.toLowerCase())).sort((a,b)=>a.name.localeCompare(b.name,"it",{sensitivity:"base"}));
 
   const save=async()=>{
     setSaving(true);
@@ -2073,7 +2073,7 @@ function PlayerBestiaryView({data, userId, onUpdate}){
   const [searching,setSearching]=useState(false);
   const [unlockMode,setUnlockMode]=useState(false);
 
-  const filtered=(data||[]).filter(c=>c.unlocked&&c.name.toLowerCase().includes(search.toLowerCase()));
+  const filtered=(data||[]).filter(c=>c.unlocked&&c.name.toLowerCase().includes(search.toLowerCase())).sort((a,b)=>a.name.localeCompare(b.name,"it",{sensitivity:"base"}));
 
   const searchCreature=async()=>{
     if(!unlockSearch.trim())return;
