@@ -153,9 +153,9 @@ function NpcPanel({npc,onClose}){
   if(!npc)return null;
   // Handle session objects (have num+title+excerpt instead of name)
   const isSession = npc.excerpt !== undefined && npc.title !== undefined;
-  if(isSession) return <div style={{position:"fixed",inset:0,zIndex:200,display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
-    <div onClick={onClose} style={{position:"absolute",inset:0,background:"rgba(0,0,0,.7)",backdropFilter:"blur(4px)"}}/>
-    <div style={{position:"relative",background:C.bg2,borderRadius:"20px 20px 0 0",border:`1px solid ${C.border2}`,width:"100%",maxWidth:640,maxHeight:"85vh",overflowY:"auto"}}>
+  if(isSession) return <div style={{position:"fixed",inset:0,zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+    <div onClick={onClose} style={{position:"absolute",inset:0,background:"rgba(0,0,0,.8)",backdropFilter:"blur(4px)"}}/>
+    <div style={{position:"relative",background:C.bg2,borderRadius:20,border:`1px solid ${C.border2}`,width:"100%",maxWidth:640,maxHeight:"85vh",overflowY:"auto",boxShadow:`0 0 60px ${C.goldGlow}`}}>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"18px 20px 12px"}}>
         <div>
           {npc.num&&<div style={{fontSize:10,fontWeight:600,letterSpacing:".2em",textTransform:"uppercase",color:C.goldDim,marginBottom:4}}>Sessione {npc.num}</div>}
@@ -169,9 +169,9 @@ function NpcPanel({npc,onClose}){
       </div>
     </div>
   </div>;
-  return <div style={{position:"fixed",inset:0,zIndex:200,display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
-    <div onClick={onClose} style={{position:"absolute",inset:0,background:"rgba(0,0,0,.7)",backdropFilter:"blur(4px)"}}/>
-    <div style={{position:"relative",background:C.bg2,borderRadius:"20px 20px 0 0",border:`1px solid ${C.border2}`,width:"100%",maxWidth:640,maxHeight:"92vh",overflowY:"auto"}}>
+  return <div style={{position:"fixed",inset:0,zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+    <div onClick={onClose} style={{position:"absolute",inset:0,background:"rgba(0,0,0,.8)",backdropFilter:"blur(4px)"}}/>
+    <div style={{position:"relative",background:C.bg2,borderRadius:20,border:`1px solid ${C.border2}`,width:"100%",maxWidth:640,maxHeight:"92vh",overflowY:"auto",boxShadow:`0 0 60px ${C.goldGlow}`}}>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"18px 20px 12px"}}>
         <span style={{fontFamily:"'Cinzel',serif",fontSize:20,fontWeight:700,color:C.gold}}>{npc.name}</span>
         <button onClick={onClose} style={{background:"none",border:"none",fontSize:22,color:C.textDim,cursor:"pointer"}}>✕</button>
@@ -366,7 +366,7 @@ function PlayerView({user, onLogout}){
     {v:"mappa",icon:"🗺️",label:"Mappa"},
     {v:"fazioni",icon:"⚔️",label:"Fazioni"},
     {v:"mondo",icon:"🌍",label:"Fogli del Mondo"},
-    {v:"cronologia",icon:"⏳",label:"Cronologia"},{v:"mercato",icon:"🪙",label:"Mercato"},
+    {v:"cronologia",icon:"⏳",label:"Cronologia"},
   ];
   const partyNavItems=[
     {v:"bastioni",icon:"⚓",label:"Bastioni"},
@@ -2846,7 +2846,7 @@ export default function App(){
     {v:"sessioni",icon:"📜",label:"Sessioni"},{v:"gilda",icon:"🏴",label:"Gilda"},
     {v:"npc",icon:"👤",label:"NPC"},{v:"mappa",icon:"🗺️",label:"Mappa"},
     {v:"fazioni",icon:"⚔️",label:"Fazioni"},{v:"mondo",icon:"🌍",label:"Fogli del Mondo"},
-    {v:"cronologia",icon:"⏳",label:"Cronologia"},{v:"mercato",icon:"🪙",label:"Mercato"},
+    {v:"cronologia",icon:"⏳",label:"Cronologia"},
   ];
 
   return <div style={{display:"flex",height:"100vh",overflow:"hidden",background:C.bg,color:C.text,fontFamily:"'Inter',sans-serif"}}>
