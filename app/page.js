@@ -1897,7 +1897,7 @@ function BestiaryView({isAuth, data, onUpdate}){
   };
 
   const handleDescriptionPaste = (e) => {
-    const text = e.clipboardData?.getData("text");
+    const text = e.clipboardData?.getData("text/plain") || e.clipboardData?.getData("text") || "";
     if(!text) return;
     const parsed = splitCreatureText(text);
     if(parsed.habitat||parsed.comportamento||parsed.curiosita){
@@ -1919,7 +1919,7 @@ function BestiaryView({isAuth, data, onUpdate}){
 
     {/* Add button */}
     {isAuth&&<div style={{marginBottom:12}}>
-      <Btn primary onClick={()=>{setVals({name:"",type:"Bestia",challenge_rating:"1",hp:"",description:"",habitat:"",comportamento:"",curiosita:"",attacks:"",img_url:"",unlocked:false});setImgPreview("");setImgFile(null);setModal({});}}>+ Aggiungi Creatura</Btn>
+      <Btn primary onClick={()=>{setVals({name:"",type:"Bestia",challenge_rating:"1",hp:"",description:"",habitat:"",comportamento:"",curiosita:"",attacks:"",img_url:"",unlocked:true});setImgPreview("");setImgFile(null);setModal({});}}>+ Aggiungi Creatura</Btn>
     </div>}
 
     {/* List */}
@@ -2029,6 +2029,16 @@ function BestiaryView({isAuth, data, onUpdate}){
         <div style={{marginBottom:13}}>
           <label style={lbl}>Descrizione</label>
           <textarea value={vals.description||""} onChange={e=>setVals(v=>({...v,description:e.target.value}))} onPaste={handleDescriptionPaste} placeholder="Descrivi la creatura... (incolla un testo con intestazioni HABITAT / COMPORTAMENTO / CURIOSITÀ per dividerlo automaticamente nei campi sotto)" style={{...inp,minHeight:80,resize:"vertical"}}/>
+          <button type="button" onClick={()=>{
+            const parsed=splitCreatureText(vals.description||"");
+            if(!parsed.habitat&&!parsed.comportamento&&!parsed.curiosita){alert("Nessuna intestazione HABITAT / COMPORTAMENTO / CURIOSITÀ trovata nel testo.");return;}
+            setVals(v=>({...v,
+              description: parsed.description,
+              habitat: parsed.habitat||v.habitat,
+              comportamento: parsed.comportamento||v.comportamento,
+              curiosita: parsed.curiosita||v.curiosita,
+            }));
+          }} style={{marginTop:6,background:"none",border:`1px solid ${C.border2}`,borderRadius:8,color:C.gold,fontSize:11,fontWeight:600,padding:"5px 10px",cursor:"pointer"}}>🪄 Dividi automaticamente nei campi sotto</button>
         </div>
         {/* Habitat */}
         <div style={{marginBottom:13}}><label style={lbl}>Habitat</label><input value={vals.habitat||""} onChange={e=>setVals(v=>({...v,habitat:e.target.value}))} placeholder="es. Foreste e paludi" style={inp}/></div>
@@ -2038,6 +2048,11 @@ function BestiaryView({isAuth, data, onUpdate}){
         <div style={{marginBottom:13}}><label style={lbl}>Curiosità</label><textarea value={vals.curiosita||""} onChange={e=>setVals(v=>({...v,curiosita:e.target.value}))} placeholder="Fatti curiosi, leggende, debolezze note..." style={{...inp,minHeight:60,resize:"vertical"}}/></div>
         {/* Attacks */}
         <div style={{marginBottom:13}}><label style={lbl}>Attacchi</label><textarea value={vals.attacks||""} onChange={e=>setVals(v=>({...v,attacks:e.target.value}))} placeholder="es. Artigli: +7 colpire, 2d6+4 taglienti..." style={{...inp,minHeight:60,resize:"vertical"}}/></div>
+        {/* Unlocked */}
+        <label style={{display:"flex",alignItems:"center",gap:8,marginBottom:16,cursor:"pointer",fontSize:13,color:C.textDim}}>
+          <input type="checkbox" checked={vals.unlocked!==false} onChange={e=>setVals(v=>({...v,unlocked:e.target.checked}))}/>
+          Visibile ai giocatori (sbloccata)
+        </label>
         {/* Buttons */}
         <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
           <Btn onClick={()=>setModal(null)}>Annulla</Btn>
