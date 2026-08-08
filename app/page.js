@@ -893,9 +893,9 @@ function PlayerView({user, onLogout}){
       </div>
 
       <NpcPanel npc={npcOpen} onClose={()=>setNpcOpen(null)}/>
-    {sessionOpen&&<div onClick={()=>setSessionOpen(null)} style={{position:"fixed",inset:0,zIndex:200,display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
-      <div onClick={e=>e.stopPropagation()} style={{position:"absolute",inset:0,background:"rgba(0,0,0,.7)",backdropFilter:"blur(4px)"}}/>
-      <div style={{position:"relative",background:C.bg2,borderRadius:"20px 20px 0 0",border:`1px solid ${C.border2}`,width:"100%",maxWidth:640,maxHeight:"85vh",overflowY:"auto"}}>
+    {sessionOpen&&<div onClick={()=>setSessionOpen(null)} style={{position:"fixed",inset:0,zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+      <div onClick={e=>e.stopPropagation()} style={{position:"absolute",inset:0,background:"rgba(0,0,0,.8)",backdropFilter:"blur(4px)"}}/>
+      <div style={{position:"relative",background:C.bg2,borderRadius:20,border:`1px solid ${C.border2}`,width:"100%",maxWidth:640,maxHeight:"85vh",overflowY:"auto",boxShadow:`0 0 60px ${C.goldGlow}`}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"18px 20px 12px"}}>
           <div>
             {sessionOpen.num&&<div style={{fontSize:10,fontWeight:600,letterSpacing:".2em",textTransform:"uppercase",color:C.goldDim,marginBottom:4}}>Sessione {sessionOpen.num}</div>}
@@ -2615,7 +2615,7 @@ export default function App(){
     switch(view){
       case "sessioni":return !data.sessioni.length?<EmptyState msg="Nessuna sessione ancora"/>:
         <div style={{display:"flex",flexDirection:"column",gap:6}}>
-          {[...data.sessioni].sort((a,b)=>(parseInt(a.num)||0)-(parseInt(b.num)||0)).map((s,i)=>(
+          {[...data.sessioni].sort((a,b)=>(parseInt(b.num)||0)-(parseInt(a.num)||0)).map((s,i)=>(
             <div key={s.id||i} onClick={()=>setSessionOpen(s)} style={{display:"flex",alignItems:"center",gap:12,background:C.bg2,border:`1px solid ${C.border}`,borderRadius:12,padding:"12px 16px",cursor:"pointer",position:"relative",overflow:"hidden"}}>
               <div style={{position:"absolute",top:0,left:0,width:3,height:"100%",background:C.goldDim}}/>
               <div style={{fontFamily:"'Cinzel',serif",fontSize:12,fontWeight:700,color:C.goldDim,minWidth:80,flexShrink:0}}>{s.num?`Sess. ${s.num}`:""}</div>
@@ -2911,9 +2911,9 @@ export default function App(){
       <div style={{flex:1,overflowY:"auto",padding:20}}>{renderContent()}</div>
     </div>
     <NpcPanel npc={npcOpen} onClose={()=>setNpcOpen(null)}/>
-    {sessionOpen&&<div onClick={()=>setSessionOpen(null)} style={{position:"fixed",inset:0,zIndex:200,display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
-      <div onClick={e=>e.stopPropagation()} style={{position:"absolute",inset:0,background:"rgba(0,0,0,.7)",backdropFilter:"blur(4px)"}}/>
-      <div style={{position:"relative",background:C.bg2,borderRadius:"20px 20px 0 0",border:`1px solid ${C.border2}`,width:"100%",maxWidth:640,maxHeight:"85vh",overflowY:"auto"}}>
+    {sessionOpen&&<div onClick={()=>setSessionOpen(null)} style={{position:"fixed",inset:0,zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+      <div onClick={e=>e.stopPropagation()} style={{position:"absolute",inset:0,background:"rgba(0,0,0,.8)",backdropFilter:"blur(4px)"}}/>
+      <div style={{position:"relative",background:C.bg2,borderRadius:20,border:`1px solid ${C.border2}`,width:"100%",maxWidth:640,maxHeight:"85vh",overflowY:"auto",boxShadow:`0 0 60px ${C.goldGlow}`}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"18px 20px 12px"}}>
           <div>
             {sessionOpen.num&&<div style={{fontSize:10,fontWeight:600,letterSpacing:".2em",textTransform:"uppercase",color:C.goldDim,marginBottom:4}}>Sessione {sessionOpen.num}</div>}
