@@ -1682,6 +1682,50 @@ function CreazioneView({isAuth}){
   const [modal, setModal] = useState(null);
   const [vals, setVals] = useState({});
   const [saving, setSaving] = useState(false);
+  const [rulesOpen, setRulesOpen] = useState(false);
+
+  const RULES = [
+    {icon:"🪵", name:"Legno", use:"Utilizzato per scafo, ponte, alberi e strutture.", items:[
+      "Cassa o piccolo mobile → 1 Legno",
+      "Barile / insieme di assi → 1–2 Legno",
+      "Tronco piccolo → 5 Legno",
+      "Tronco medio → 10 Legno",
+      "Tronco grande → 20 Legno",
+      "Piccola struttura smantellata → 10–30 Legno",
+      "Piccola imbarcazione → 30–50 Legno",
+      "Relitto → 50–100 Legno",
+    ], note:"Raccolta: abbattere un albero non basta. Il tronco deve essere tagliato e preparato. Un lavoratore con strumenti adeguati può produrre circa 10 Legno al giorno."},
+    {icon:"⛓️", name:"Ferro", use:"Utilizzato per chiodi, giunture, rinforzi, ferramenta e componenti meccaniche.", items:[
+      "Arma o attrezzo metallico → 1 Ferro",
+      "Piccola quantità di ferramenta → 1 Ferro",
+      "Cassa di chiodi/attrezzi → 2–3 Ferro",
+      "Catena pesante → 2–3 Ferro",
+      "Ancora → 5 Ferro",
+      "Componenti recuperati da un relitto → 5–10 Ferro",
+    ], note:"Gli oggetti sacrificati come materiale vengono distrutti."},
+    {icon:"🧵", name:"Stoffa", use:"Utilizzata principalmente per vele e coperture.", items:[
+      "Mantello o grande telo → 1 Stoffa",
+      "Amaca → 1 Stoffa",
+      "Tenda → 2–3 Stoffa",
+      "Vela danneggiata → 3–5 Stoffa",
+      "Vela piccola integra → 5–10 Stoffa",
+      "Grande vela navale → 10–15 Stoffa",
+    ], note:"La stoffa marcia, strappata o eccessivamente deteriorata non è utilizzabile."},
+    {icon:"🪢", name:"Corda", use:"Utilizzata per sartie, vele, ancoraggio e manovre. 1 Corda = circa 10 metri di cordame utilizzabile.", items:[
+      "10 m di corda → 1 Corda",
+      "15 m di corda → 1 Corda",
+      "30 m di corda → 3 Corda",
+      "Cordame recuperato da una piccola imbarcazione → 5–10 Corda",
+      "Cordame recuperato da un relitto → 10–20 Corda",
+    ], note:"Una corda utilizzata per la nave viene consumata e rimossa dall'inventario."},
+    {icon:"🟤", name:"Resina", use:"Utilizzata per sigillare, impermeabilizzare e proteggere lo scafo.", items:[
+      "Piccola quantità raccolta → 1 Resina",
+      "Albero adatto lavorato → 1–2 Resina",
+      "Grosso albero ricco di resina → 3 Resina",
+      "Contenitore di pece/resina → 5 Resina",
+      "Scorta da carpentiere navale → 5–10 Resina",
+    ], note:"La resina richiede tempo per essere estratta e preparata: non basta trovare l'albero."},
+  ];
 
   const load = async () => {
     const {data, error} = await supabase.from("materiali_costruzione").select("*").order("created_at",{ascending:true});
@@ -1732,6 +1776,7 @@ function CreazioneView({isAuth}){
     <div style={{textAlign:"center",padding:"16px 0 20px"}}>
       <div style={{fontFamily:"'Cinzel',serif",fontSize:18,fontWeight:700,color:C.gold,textShadow:`0 0 24px ${C.goldGlow}`}}>🔨 Creazione</div>
       <div style={{fontSize:10,fontWeight:600,letterSpacing:".2em",textTransform:"uppercase",color:C.textMuted,marginTop:4}}>Materiali per la riparazione della nave</div>
+      <div style={{marginTop:10}}><Btn onClick={()=>setRulesOpen(true)}>⚒️ Regole dei materiali</Btn></div>
     </div>
 
     {allComplete&&<Card style={{marginBottom:16,textAlign:"center",border:`1px solid ${C.green}`,background:"rgba(74,222,128,.08)"}}>
@@ -1792,6 +1837,41 @@ function CreazioneView({isAuth}){
         <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
           <Btn onClick={()=>setModal(null)}>Annulla</Btn>
           <Btn primary onClick={save} disabled={saving}>{saving?"Salvo...":"Salva"}</Btn>
+        </div>
+      </div>
+    </div>}
+
+    {rulesOpen&&<div onClick={()=>setRulesOpen(false)} style={{position:"fixed",inset:0,zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:20,background:"rgba(0,0,0,.8)",backdropFilter:"blur(4px)"}}>
+      <div onClick={e=>e.stopPropagation()} style={{position:"relative",background:C.bg2,borderRadius:20,border:`1px solid ${C.border2}`,width:"100%",maxWidth:640,maxHeight:"88vh",overflowY:"auto",boxShadow:`0 0 60px ${C.goldGlow}`}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"18px 20px 12px"}}>
+          <span style={{fontFamily:"'Cinzel',serif",fontSize:20,fontWeight:700,color:C.gold}}>⚒️ Regole dei materiali</span>
+          <button onClick={()=>setRulesOpen(false)} style={{background:"none",border:"none",fontSize:22,color:C.textDim,cursor:"pointer"}}>✕</button>
+        </div>
+        <div style={{padding:"0 20px 28px"}}>
+          <div style={{fontSize:13,color:C.textDim,lineHeight:1.7,marginBottom:20,fontStyle:"italic"}}>
+            I materiali rappresentano unità astratte di risorse utilizzabili per costruire o riparare una nave. Non corrispondono direttamente al peso dell'oggetto: rappresentano quanto materiale effettivamente recuperabile si può ottenere dopo averlo lavorato.
+          </div>
+          {RULES.map(r=>(
+            <div key={r.name} style={{marginBottom:20}}>
+              <div style={{fontSize:13,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:C.gold,marginBottom:6}}>{r.icon} {r.name}</div>
+              <div style={{fontSize:13,color:C.textDim,lineHeight:1.6,marginBottom:8}}>{r.use}</div>
+              <ul style={{margin:0,paddingLeft:18,marginBottom:8}}>
+                {r.items.map((it,idx)=>(
+                  <li key={idx} style={{fontSize:13,color:C.text,lineHeight:1.7}}>{it}</li>
+                ))}
+              </ul>
+              <div style={{fontSize:12,color:C.textMuted,lineHeight:1.6,fontStyle:"italic"}}>{r.note}</div>
+            </div>
+          ))}
+          <div style={{borderTop:`1px solid ${C.border}`,paddingTop:16,marginTop:8}}>
+            <div style={{fontSize:13,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:C.gold,marginBottom:6}}>⚙️ Regola generale</div>
+            <div style={{fontSize:13,color:C.textDim,lineHeight:1.7,marginBottom:8}}>Se i PG trovano qualcosa non presente nella tabella, il DM assegna il valore in base alla quantità e allo stato del materiale.</div>
+            <ul style={{margin:0,paddingLeft:18}}>
+              <li style={{fontSize:13,color:C.text,lineHeight:1.7}}>Materiale integro → 100% del valore</li>
+              <li style={{fontSize:13,color:C.text,lineHeight:1.7}}>Materiale danneggiato → 50% del valore</li>
+              <li style={{fontSize:13,color:C.text,lineHeight:1.7}}>Materiale marcio/inutilizzabile → 0</li>
+            </ul>
+          </div>
         </div>
       </div>
     </div>}
