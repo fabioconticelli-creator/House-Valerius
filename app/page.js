@@ -369,6 +369,7 @@ function PlayerView({user, onLogout}){
     {v:"cronologia",icon:"⏳",label:"Cronologia"},
   ];
   const partyNavItems=[
+    {v:"attivita",icon:"📋",label:"Attività Fuori Servizio"},
     {v:"bastioni",icon:"⚓",label:"Bastioni"},
     {v:"bestiario",icon:"🐉",label:"Bestiario Scoperto"},
     {v:"creazione",icon:"🔨",label:"Creazione"},
@@ -483,6 +484,7 @@ function PlayerView({user, onLogout}){
       case "loot": return <LootView isAuth={false}/>;
       case "bestiario": return <PlayerBestiaryView data={campData.bestiario} userId={user.userId} onUpdate={load}/>;
       case "creazione": return <CreazioneView isAuth={false}/>;
+      case "attivita": return <AttivitaView isAuth={false} playerId={user.userId} playerName={char?.name||user.name}/>;
       case "mappa":{
         const mapImg=campData.map_config?.map_path;
         return <div>
@@ -1879,6 +1881,133 @@ function CreazioneView({isAuth}){
 }
 
 
+// ── ATTIVITÀ FUORI SERVIZIO VIEW ──
+function AttivitaView({isAuth, playerId, playerName}){
+  const [activities, setActivities] = useState([]);
+  const [choices, setChoices] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [modal, setModal] = useState(null);
+  const [vals, setVals] = useState({});
+  const [saving, setSaving] = useState(false);
+
+  const load = async () => {
+    const [actRes, chRes] = await Promise.all([
+      supabase.from("attivita_fuori_servizio").select("*").order("nome",{ascending:true}),
+      supabase.from("attivita_scelte").select("*"),
+    ]);
+    if(actRes.error) console.error("Errore caricamento attività:",actRes.error.message);
+    if(chRes.error) console.error("Errore caricamento scelte:",chRes.error.message);
+    setActivities(actRes.data||[]);
+    setChoices(chRes.data||[]);
+    setLoading(false);
+  };
+
+  useEffect(()=>{ load(); },[]);
+
+  const myChoice = playerId ? choices.find(c=>c.player_id===playerId) : null;
+
+  const choose = async (activityId) => {
+    if(!playerId) return;
+    const {error} = await supabase.from("attivita_scelte").upsert(
+      {player_id:playerId, player_name:playerName||"Avventuriero", activity_id:activityId, updated_at:new Date().toISOString()},
+      {onConflict:"player_id"}
+    );
+    if(error){ alert("Errore: "+error.message); return; }
+    load();
+  };
+
+  const unchoose = async () => {
+    if(!playerId) return;
+    const {error} = await supabase.from("attivita_scelte").delete().eq("player_id",playerId);
+    if(error){ alert("Errore: "+error.message); return; }
+    load();
+  };
+
+  const save = async () => {
+    setSaving(true);
+    try{
+      const obj = { nome: vals.nome||"", descrizione: vals.descrizione||"" };
+      if(!obj.nome.trim()){ alert("Il campo Nome è obbligatorio."); setSaving(false); return; }
+      const {error} = modal?.id
+        ? await supabase.from("attivita_fuori_servizio").update(obj).eq("id",modal.id)
+        : await supabase.from("attivita_fuori_servizio").insert(obj);
+      if(error){ alert("Errore: "+error.message); setSaving(false); return; }
+      setModal(null); load();
+    }catch(e){ alert("Errore: "+e.message); }
+    setSaving(false);
+  };
+
+  const del = async (id) => {
+    if(!window.confirm("Eliminare questa attività? Verranno rimosse anche le scelte dei giocatori collegate.")) return;
+    const {error} = await supabase.from("attivita_fuori_servizio").delete().eq("id",id);
+    if(error){ alert("Errore: "+error.message); return; }
+    load();
+  };
+
+  if(loading) return <div style={{textAlign:"center",padding:40,color:C.textMuted}}>Carico...</div>;
+
+  return <div>
+    <div style={{textAlign:"center",padding:"16px 0 20px"}}>
+      <div style={{fontFamily:"'Cinzel',serif",fontSize:18,fontWeight:700,color:C.gold,textShadow:`0 0 24px ${C.goldGlow}`}}>📋 Attività Fuori Servizio</div>
+      <div style={{fontSize:10,fontWeight:600,letterSpacing:".2em",textTransform:"uppercase",color:C.textMuted,marginTop:4}}>Cosa farà il tuo personaggio tra un'avventura e l'altra</div>
+    </div>
+
+    {isAuth&&<div style={{textAlign:"right",marginBottom:12}}>
+      <Btn primary onClick={()=>{setVals({nome:"",descrizione:""});setModal({});}}>+ Aggiungi Attività</Btn>
+    </div>}
+
+    {!activities.length?<EmptyState msg="Nessuna attività ancora"/>:
+      <div style={{display:"flex",flexDirection:"column",gap:10}}>
+        {activities.map(a=>{
+          const assigned = choices.filter(c=>c.activity_id===a.id);
+          const isMine = myChoice?.activity_id===a.id;
+          return <Card key={a.id} style={isMine?{border:`1px solid ${C.gold}`,background:"rgba(212,160,23,.06)"}:{}}>
+            <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:10}}>
+              <div style={{flex:1}}>
+                <div style={{fontFamily:"'Cinzel',serif",fontSize:15,fontWeight:600,color:isMine?C.gold:C.text}}>{isMine?"✓ ":""}{a.nome}</div>
+                {a.descrizione&&<div style={{fontSize:13,color:C.textDim,lineHeight:1.6,marginTop:4,fontStyle:"italic"}}>{a.descrizione}</div>}
+              </div>
+              {isAuth&&<div style={{display:"flex",gap:6,flexShrink:0}}>
+                <Btn onClick={()=>{setVals({nome:a.nome,descrizione:a.descrizione||""});setModal(a);}}>✏</Btn>
+                <Btn onClick={()=>del(a.id)}>✕</Btn>
+              </div>}
+            </div>
+            {assigned.length>0&&<div style={{display:"flex",flexWrap:"wrap",gap:6,marginTop:12}}>
+              {assigned.map(c=>(
+                <span key={c.id} style={{fontSize:11,fontWeight:600,color:C.gold,background:"rgba(212,160,23,.12)",border:`1px solid ${C.border2}`,borderRadius:20,padding:"3px 10px"}}>{c.player_name}</span>
+              ))}
+            </div>}
+            {playerId&&<div style={{marginTop:12}}>
+              {isMine
+                ?<Btn onClick={unchoose}>Annulla la mia scelta</Btn>
+                :<Btn primary onClick={()=>choose(a.id)}>Scegli questa attività</Btn>}
+            </div>}
+          </Card>;
+        })}
+      </div>
+    }
+
+    {modal&&<div onClick={()=>setModal(null)} style={{position:"fixed",inset:0,zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:20,background:"rgba(0,0,0,.8)",backdropFilter:"blur(4px)"}}>
+      <div onClick={e=>e.stopPropagation()} style={{background:C.bg2,borderRadius:20,border:`1px solid ${C.border2}`,width:"100%",maxWidth:420,padding:20}}>
+        <div style={{fontFamily:"'Cinzel',serif",fontSize:18,fontWeight:700,color:C.gold,marginBottom:16}}>{modal.id?"Modifica Attività":"Nuova Attività"}</div>
+        <div style={{marginBottom:13}}>
+          <label style={{fontSize:10,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",color:C.textMuted,display:"block",marginBottom:5}}>Nome</label>
+          <input value={vals.nome||""} onChange={e=>setVals(v=>({...v,nome:e.target.value}))} placeholder="es. Addestramento in armeria" style={{width:"100%",background:C.bg3,border:`1px solid ${C.border2}`,borderRadius:8,padding:"9px 12px",color:C.text,fontSize:14}}/>
+        </div>
+        <div style={{marginBottom:16}}>
+          <label style={{fontSize:10,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",color:C.textMuted,display:"block",marginBottom:5}}>Descrizione</label>
+          <textarea value={vals.descrizione||""} onChange={e=>setVals(v=>({...v,descrizione:e.target.value}))} placeholder="Cosa comporta questa attività..." style={{width:"100%",minHeight:70,resize:"vertical",background:C.bg3,border:`1px solid ${C.border2}`,borderRadius:8,padding:"9px 12px",color:C.text,fontSize:14}}/>
+        </div>
+        <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
+          <Btn onClick={()=>setModal(null)}>Annulla</Btn>
+          <Btn primary onClick={save} disabled={saving}>{saving?"Salvo...":"Salva"}</Btn>
+        </div>
+      </div>
+    </div>}
+  </div>;
+}
+
+
 // ── MERCATO VIEW ──
 function MercatoView({isAuth, data, onUpdate}){
   const [modal,setModal]=useState(null);
@@ -2707,7 +2836,7 @@ export default function App(){
   const [selectedPlayer,setSelectedPlayer]=useState(null);
 
   const isAuth = user?.role==="dm";
-  const TITLES={sessioni:"Sessioni",npc:"NPC",mappa:"Mappa",gilda:"Gilda",fazioni:"Fazioni",mondo:"Fogli del Mondo",cronologia:"Cronologia",mercato:"Mercato",loot:"Loot di Gruppo",bestiario:"Bestiario Scoperto",creazione:"Creazione"};
+  const TITLES={sessioni:"Sessioni",npc:"NPC",mappa:"Mappa",gilda:"Gilda",fazioni:"Fazioni",mondo:"Fogli del Mondo",cronologia:"Cronologia",mercato:"Mercato",loot:"Loot di Gruppo",bestiario:"Bestiario Scoperto",creazione:"Creazione",attivita:"Attività Fuori Servizio"};
 
   const handleLogin = (u) => {
     setUser(u);
@@ -3038,6 +3167,7 @@ export default function App(){
       case "loot": return <LootView isAuth={isAuth}/>;
       case "bestiario": return <BestiaryView isAuth={isAuth} data={data.bestiario} onUpdate={loadAll}/>;
       case "creazione": return <CreazioneView isAuth={isAuth}/>;
+      case "attivita": return <AttivitaView isAuth={isAuth}/>;
 
       case "bastioni": return <BastioniView isAuth={isAuth} onUpdate={loadAll}/>;
 
@@ -3080,6 +3210,9 @@ export default function App(){
       <div style={{height:1,background:C.border,margin:"6px 18px"}}/>
       <div style={{padding:"14px 0 6px"}}>
         <div style={{fontSize:10,fontWeight:600,letterSpacing:".18em",textTransform:"uppercase",color:C.textMuted,padding:"0 18px 6px"}}>Party</div>
+        <div onClick={()=>nav("attivita")} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 18px",cursor:"pointer",fontSize:13,color:view==="attivita"?C.gold:C.textDim,background:view==="attivita"?`rgba(212,160,23,.08)`:"transparent",borderLeft:`2px solid ${view==="attivita"?C.gold:"transparent"}`}}>
+          <span style={{fontSize:14,width:18,textAlign:"center"}}>📋</span>Attività Fuori Servizio
+        </div>
         <div onClick={()=>nav("bastioni")} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 18px",cursor:"pointer",fontSize:13,color:view==="bastioni"?C.gold:C.textDim,background:view==="bastioni"?`rgba(212,160,23,.08)`:"transparent",borderLeft:`2px solid ${view==="bastioni"?C.gold:"transparent"}`}}>
           <span style={{fontSize:14,width:18,textAlign:"center"}}>⚓</span>Bastioni
         </div>
