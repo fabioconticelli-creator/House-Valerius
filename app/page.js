@@ -1882,7 +1882,7 @@ function CreazioneView({isAuth}){
 
 
 // ── ATTIVITÀ FUORI SERVIZIO VIEW ──
-function AttivitaView({isAuth, playerId, playerName}){
+function AttivitaView({isAuth, playerId, playerName, players=[]}){
   const [activities, setActivities] = useState([]);
   const [choices, setChoices] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -1906,19 +1906,27 @@ function AttivitaView({isAuth, playerId, playerName}){
 
   const myChoice = playerId ? choices.find(c=>c.player_id===playerId) : null;
 
-  const choose = async (activityId) => {
-    if(!playerId) return;
+  const PLAYER_COLORS = ["#e879f9","#38bdf8","#fb923c","#4ade80","#f87171","#facc15","#a78bfa","#2dd4bf"];
+  const colorFor = (pid) => {
+    let hash=0; for(const ch of String(pid)) hash = (hash*31 + ch.charCodeAt(0))>>>0;
+    return PLAYER_COLORS[hash % PLAYER_COLORS.length];
+  };
+
+  const choose = async (activityId, pid, pname) => {
+    const targetId = pid||playerId, targetName = pname||playerName;
+    if(!targetId) return;
     const {error} = await supabase.from("attivita_scelte").upsert(
-      {player_id:playerId, player_name:playerName||"Avventuriero", activity_id:activityId, updated_at:new Date().toISOString()},
+      {player_id:targetId, player_name:targetName||"Avventuriero", activity_id:activityId, updated_at:new Date().toISOString()},
       {onConflict:"player_id"}
     );
     if(error){ alert("Errore: "+error.message); return; }
     load();
   };
 
-  const unchoose = async () => {
-    if(!playerId) return;
-    const {error} = await supabase.from("attivita_scelte").delete().eq("player_id",playerId);
+  const unchoose = async (pid) => {
+    const targetId = pid||playerId;
+    if(!targetId) return;
+    const {error} = await supabase.from("attivita_scelte").delete().eq("player_id",targetId);
     if(error){ alert("Errore: "+error.message); return; }
     load();
   };
@@ -1979,8 +1987,21 @@ function AttivitaView({isAuth, playerId, playerName}){
             </div>}
             {playerId&&<div style={{marginTop:12}}>
               {isMine
-                ?<Btn onClick={unchoose}>Annulla la mia scelta</Btn>
+                ?<Btn onClick={()=>unchoose()}>Annulla la mia scelta</Btn>
                 :<Btn primary onClick={()=>choose(a.id)}>Scegli questa attività</Btn>}
+            </div>}
+            {isAuth&&players.length>0&&<div style={{display:"flex",flexWrap:"wrap",gap:6,marginTop:12,paddingTop:10,borderTop:`1px solid ${C.border}`}}>
+              {players.map(p=>{
+                const picked = choices.find(c=>c.player_id===p.player_id)?.activity_id===a.id;
+                const col = colorFor(p.player_id);
+                return <button key={p.player_id} onClick={()=>picked?unchoose(p.player_id):choose(a.id,p.player_id,p.name)}
+                  style={{fontSize:11,fontWeight:600,borderRadius:20,padding:"4px 11px",cursor:"pointer",
+                    border:`1px solid ${picked?col:C.border2}`,
+                    background:picked?col:"transparent",
+                    color:picked?"#0b1120":col}}>
+                  {picked?"✓ ":""}{p.name}
+                </button>;
+              })}
             </div>}
           </Card>;
         })}
@@ -3167,7 +3188,7 @@ export default function App(){
       case "loot": return <LootView isAuth={isAuth}/>;
       case "bestiario": return <BestiaryView isAuth={isAuth} data={data.bestiario} onUpdate={loadAll}/>;
       case "creazione": return <CreazioneView isAuth={isAuth}/>;
-      case "attivita": return <AttivitaView isAuth={isAuth}/>;
+      case "attivita": return <AttivitaView isAuth={isAuth} players={players}/>;
 
       case "bastioni": return <BastioniView isAuth={isAuth} onUpdate={loadAll}/>;
 
