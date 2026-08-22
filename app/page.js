@@ -1911,6 +1911,7 @@ function AttivitaView({isAuth, playerId, playerName, players=[]}){
     let hash=0; for(const ch of String(pid)) hash = (hash*31 + ch.charCodeAt(0))>>>0;
     return PLAYER_COLORS[hash % PLAYER_COLORS.length];
   };
+  const shortName = (n) => (n||"").trim().split(" ")[0] || n;
 
   const choose = async (activityId, pid, pname) => {
     const targetId = pid||playerId, targetName = pname||playerName;
@@ -1982,7 +1983,7 @@ function AttivitaView({isAuth, playerId, playerName, players=[]}){
             </div>
             {assigned.length>0&&<div style={{display:"flex",flexWrap:"wrap",gap:6,marginTop:12}}>
               {assigned.map(c=>(
-                <span key={c.id} style={{fontSize:11,fontWeight:600,color:C.gold,background:"rgba(212,160,23,.12)",border:`1px solid ${C.border2}`,borderRadius:20,padding:"3px 10px"}}>{c.player_name}</span>
+                <span key={c.id} style={{fontSize:11,fontWeight:600,color:C.gold,background:"rgba(212,160,23,.12)",border:`1px solid ${C.border2}`,borderRadius:20,padding:"3px 10px"}}>{shortName(c.player_name)}</span>
               ))}
             </div>}
             {playerId&&<div style={{marginTop:12}}>
@@ -1999,7 +2000,7 @@ function AttivitaView({isAuth, playerId, playerName, players=[]}){
                     border:`1px solid ${picked?col:C.border2}`,
                     background:picked?col:"transparent",
                     color:picked?"#0b1120":col}}>
-                  {picked?"✓ ":""}{p.name}
+                  {picked?"✓ ":""}{shortName(p.name)}
                 </button>;
               })}
             </div>}
