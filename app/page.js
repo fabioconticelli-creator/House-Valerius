@@ -2983,10 +2983,10 @@ export default function App(){
       case "sessioni":return !data.sessioni.length?<EmptyState msg="Nessuna sessione ancora"/>:
         <div style={{display:"flex",flexDirection:"column",gap:6}}>
           {[...data.sessioni].sort((a,b)=>(parseInt(b.num)||0)-(parseInt(a.num)||0)).map((s,i)=>(
-            <div key={s.id||i} onClick={()=>setSessionOpen(s)} style={{display:"flex",alignItems:"center",gap:12,background:C.bg2,border:`1px solid ${C.border}`,borderRadius:12,padding:"12px 16px",cursor:"pointer",position:"relative",overflow:"hidden"}}>
+            <div key={s.id||i} onClick={()=>setSessionOpen(s)} style={{display:"flex",flexWrap:"wrap",alignItems:"center",gap:12,background:C.bg2,border:`1px solid ${C.border}`,borderRadius:12,padding:"12px 16px",cursor:"pointer",position:"relative",overflow:"hidden"}}>
               <div style={{position:"absolute",top:0,left:0,width:3,height:"100%",background:C.goldDim}}/>
               <div style={{fontFamily:"'Cinzel',serif",fontSize:12,fontWeight:700,color:C.goldDim,minWidth:80,flexShrink:0}}>{s.num?`Sess. ${s.num}`:""}</div>
-              <div style={{fontFamily:"'Cinzel',serif",fontSize:14,fontWeight:600,color:C.text,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.title}</div>
+              <div style={{fontFamily:"'Cinzel',serif",fontSize:14,fontWeight:600,color:C.text,flex:1,minWidth:120}}>{s.title}</div>
               <div style={{fontSize:11,color:C.textMuted,flexShrink:0}}>{s.date}</div>
               {isAuth&&<div onClick={e=>{e.stopPropagation();}} style={{display:"flex",gap:4,marginLeft:8}}>
                 <Btn onClick={()=>openGenericEdit("sessioni",s)}>✏</Btn>
