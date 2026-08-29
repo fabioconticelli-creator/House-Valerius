@@ -373,8 +373,6 @@ function PlayerView({user, onLogout}){
   ];
   const partyNavItems=[
     {v:"attivita",icon:"📋",label:"Attività Fuori Servizio"},
-    {v:"bastioni",icon:"⚓",label:"Bastioni"},
-    {v:"bestiario",icon:"🐉",label:"Bestiario Scoperto"},
     {v:"creazione",icon:"🔨",label:"Creazione"},
     {v:"loot",icon:"💰",label:"Loot di Gruppo"},
   ];
@@ -3286,12 +3284,6 @@ export default function App(){
         <div style={{fontSize:10,fontWeight:600,letterSpacing:".18em",textTransform:"uppercase",color:C.textMuted,padding:"0 18px 6px"}}>Party</div>
         <div onClick={()=>nav("attivita")} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 18px",cursor:"pointer",fontSize:13,color:view==="attivita"?C.gold:C.textDim,background:view==="attivita"?`rgba(212,160,23,.08)`:"transparent",borderLeft:`2px solid ${view==="attivita"?C.gold:"transparent"}`}}>
           <span style={{fontSize:14,width:18,textAlign:"center"}}>📋</span>Attività Fuori Servizio
-        </div>
-        <div onClick={()=>nav("bastioni")} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 18px",cursor:"pointer",fontSize:13,color:view==="bastioni"?C.gold:C.textDim,background:view==="bastioni"?`rgba(212,160,23,.08)`:"transparent",borderLeft:`2px solid ${view==="bastioni"?C.gold:"transparent"}`}}>
-          <span style={{fontSize:14,width:18,textAlign:"center"}}>⚓</span>Bastioni
-        </div>
-        <div onClick={()=>nav("bestiario")} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 18px",cursor:"pointer",fontSize:13,color:view==="bestiario"?C.gold:C.textDim,background:view==="bestiario"?`rgba(212,160,23,.08)`:"transparent",borderLeft:`2px solid ${view==="bestiario"?C.gold:"transparent"}`}}>
-          <span style={{fontSize:14,width:18,textAlign:"center"}}>🐉</span>Bestiario Scoperto
         </div>
         <div onClick={()=>nav("creazione")} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 18px",cursor:"pointer",fontSize:13,color:view==="creazione"?C.gold:C.textDim,background:view==="creazione"?`rgba(212,160,23,.08)`:"transparent",borderLeft:`2px solid ${view==="creazione"?C.gold:"transparent"}`}}>
           <span style={{fontSize:14,width:18,textAlign:"center"}}>🔨</span>Creazione
