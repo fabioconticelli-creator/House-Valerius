@@ -362,7 +362,6 @@ function PlayerView({user, onLogout}){
   const lbl={display:"block",fontSize:10,fontWeight:700,letterSpacing:".15em",textTransform:"uppercase",color:C.textDim,marginBottom:2};
 
   const navItems=[
-    {v:"scheda",icon:"🛡️",label:"La mia Scheda"},
     {v:"sessioni",icon:"📜",label:"Sessioni"},
     {v:"gilda",icon:"🏴",label:"Gilda"},
     {v:"npc",icon:"👤",label:"NPC"},
@@ -691,13 +690,14 @@ function PlayerView({user, onLogout}){
           <div style={{padding:"14px 0 6px"}}>
             <div style={{fontSize:10,fontWeight:600,letterSpacing:".18em",textTransform:"uppercase",color:C.textMuted,padding:"0 18px 6px"}}>La Compagnia</div>
             {allPlayers.map((p,i)=>{
-              const vkey=`compagno_${p.id}`;
+              const vkey=p.id===char?.id?"scheda":`compagno_${p.id}`;
+              const isSelf=p.id===char?.id;
               const hpPct=p.max_hp>0?Math.max(0,Math.min(100,((p.hp||0)/p.max_hp)*100)):0;
               const hpColor=hpPct>60?C.green:hpPct>25?C.yellow:"#f87171";
-              return <div key={i} onClick={()=>{setSelectedCompagno(p);setView(vkey);setSidebarOpen(false);load();}} style={{padding:"9px 18px",cursor:"pointer",background:view===vkey?`rgba(212,160,23,.08)`:"transparent",borderLeft:`2px solid ${view===vkey?C.gold:"transparent"}`}}>
+              return <div key={i} onClick={()=>{if(!isSelf)setSelectedCompagno(p);setView(vkey);setSidebarOpen(false);load();}} style={{padding:"9px 18px",cursor:"pointer",background:view===vkey?`rgba(212,160,23,.08)`:"transparent",borderLeft:`2px solid ${view===vkey?C.gold:"transparent"}`}}>
                 <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3}}>
                   <div style={{width:8,height:8,borderRadius:"50%",background:hpColor,flexShrink:0}}/>
-                  <div style={{fontSize:13,color:view===vkey?C.gold:C.textDim,fontWeight:view===vkey?500:400}}>{p.name}</div>
+                  <div style={{fontSize:13,color:view===vkey?C.gold:C.textDim,fontWeight:view===vkey?500:400}}>{p.name}{isSelf?" (tu)":""}</div>
                   <div style={{marginLeft:"auto",fontSize:10,color:C.textMuted}}>{p.hp}/{p.max_hp}</div>
                 </div>
                 <div style={{height:3,background:C.bg3,borderRadius:2,overflow:"hidden",marginLeft:16}}>
@@ -717,7 +717,7 @@ function PlayerView({user, onLogout}){
           <div style={{display:"flex",alignItems:"center",gap:10}}>
             <button onClick={()=>setSidebarOpen(o=>!o)} style={{background:"none",border:`1px solid ${C.border2}`,borderRadius:8,color:C.textDim,fontSize:16,width:36,height:36,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0}}>☰</button>
             <div style={{width:26,height:26,borderRadius:"50%",background:`radial-gradient(circle at 35% 35%,${C.gold},${C.goldDim})`,boxShadow:`0 0 10px ${C.goldGlow}`,flexShrink:0}}/>
-            <span style={{fontFamily:"'Cinzel',serif",fontSize:16,fontWeight:600,color:C.gold,letterSpacing:".06em"}}>{navItems.find(n=>n.v===view)?.label||"Terre Perdute"}</span>
+            <span style={{fontFamily:"'Cinzel',serif",fontSize:16,fontWeight:600,color:C.gold,letterSpacing:".06em"}}>{view==="scheda"?"La mia Scheda":view.startsWith("compagno_")?(selectedCompagno?.name||"Compagno"):(navItems.find(n=>n.v===view)?.label||partyNavItems.find(n=>n.v===view)?.label||"Terre Perdute")}</span>
           </div>
         </div>
 
