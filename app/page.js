@@ -223,11 +223,12 @@ function PlayerView({user, onLogout}){
   const [zoomImg, setZoomImg] = useState(null);
   const [allPlayers, setAllPlayers] = useState([]);
   const [selectedCompagno, setSelectedCompagno] = useState(null);
+  const [guildRulesOpen, setGuildRulesOpen] = useState(false);
 
   const charTabs = ["scheda","inventario","famigli","note sessione"];
 
   const load = async () => {
-    const [charRes, invRes, notesRes, npcs, sessions, factions, locations, timeline, map_pins, map_config, bestiary, mercatoRes2] = await Promise.all([
+    const [charRes, invRes, notesRes, npcs, sessions, factions, locations, timeline, map_pins, map_config, bestiary, mercatoRes2, guildRulesRes] = await Promise.all([
       supabase.from("player_characters").select("*").eq("player_id", user.userId).maybeSingle(),
       supabase.from("player_inventory").select("*").eq("player_id", user.userId).order("created_at"),
       supabase.from("player_session_notes").select("*").eq("player_id", user.userId).order("created_at",{ascending:false}),
@@ -240,6 +241,7 @@ function PlayerView({user, onLogout}){
       supabase.from("map_config").select("*").order("id"),
         supabase.from("bestiary").select("*").order("name"),
         supabase.from("mercato").select("*").order("name"),
+        supabase.from("guild_rules").select("*").limit(1),
     ]);
     if(charRes.data){
       const c = charRes.data;
@@ -258,6 +260,7 @@ function PlayerView({user, onLogout}){
       map_pins:map_pins.data||[], map_config:map_config.data?.[0]||null,
       bestiario:bestiary.data||[],
       mercato:mercatoRes2.data||[],
+      guildRulesText:guildRulesRes.data?.[0]?.text||"", guildRulesId:guildRulesRes.data?.[0]?.id||null,
     });
     const playersRes = await supabase.from("player_characters").select("*").order("name");
     const parsed = (playersRes.data||[]).map(p=>{
@@ -412,8 +415,11 @@ function PlayerView({user, onLogout}){
         const gradoColorP={"Ferro":"#a0522d","Argento":"#c0c0c0","Oro":C.gold,"Platino":"#e5e4e2","Adamantio":"#b9f2ff"};
         const sortedGP=[...campData.gilda].sort((a,b)=>(gradoOrdP[b.grado]||0)-(gradoOrdP[a.grado]||0));
         const gradiP=["Adamantio","Platino","Oro","Argento","Ferro"];
-        return !campData.gilda.length?<EmptyState msg="Nessuna gilda ancora"/>:
-        <div>
+        return <div>
+          {campData.guildRulesText&&<div style={{textAlign:"right",marginBottom:12}}>
+            <Btn onClick={()=>setGuildRulesOpen(true)}>📜 Regole della Gilda</Btn>
+          </div>}
+          {!campData.gilda.length?<EmptyState msg="Nessuna gilda ancora"/>:<>
           {gradiP.map(grado=>{
             const gruppi=sortedGP.filter(g=>g.grado===grado);
             if(!gruppi.length)return null;
@@ -436,6 +442,16 @@ function PlayerView({user, onLogout}){
               ))}
             </div>;
           })}
+          </>}
+          {guildRulesOpen&&<div onClick={()=>setGuildRulesOpen(false)} style={{position:"fixed",inset:0,zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:20,background:"rgba(0,0,0,.8)",backdropFilter:"blur(4px)"}}>
+            <div onClick={e=>e.stopPropagation()} style={{position:"relative",background:C.bg2,borderRadius:20,border:`1px solid ${C.border2}`,width:"100%",maxWidth:640,maxHeight:"85vh",overflowY:"auto",boxShadow:`0 0 60px ${C.goldGlow}`}}>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"18px 20px 12px"}}>
+                <span style={{fontFamily:"'Cinzel',serif",fontSize:20,fontWeight:700,color:C.gold}}>📜 Regole della Gilda</span>
+                <button onClick={()=>setGuildRulesOpen(false)} style={{background:"none",border:"none",fontSize:22,color:C.textDim,cursor:"pointer"}}>✕</button>
+              </div>
+              <div style={{padding:"0 20px 28px",fontSize:14,color:C.text,lineHeight:1.75,whiteSpace:"pre-wrap"}}>{campData.guildRulesText}</div>
+            </div>
+          </div>}
         </div>;
       }
       case "fazioni": return !campData.fazioni.length?<EmptyState msg="Nessuna fazione ancora"/>:
@@ -2842,6 +2858,10 @@ export default function App(){
   const [npcModal,setNpcModal]=useState(null);
   const [sessionOpen,setSessionOpen]=useState(null);
   const [worldOpen,setWorldOpen]=useState(null);
+  const [guildRulesOpen,setGuildRulesOpen]=useState(false);
+  const [guildRulesEdit,setGuildRulesEdit]=useState(false);
+  const [guildRulesDraft,setGuildRulesDraft]=useState("");
+  const [guildRulesSaving,setGuildRulesSaving]=useState(false);
   const [zoomImg,setZoomImg]=useState(null);
   const [genericModal,setGenericModal]=useState(null);
   const [genericVals,setGenericVals]=useState({});
@@ -2873,7 +2893,7 @@ export default function App(){
   const loadAll=async()=>{
     setLoading(true);
     try{
-      const [npcs,sessions,factions,locations,timeline,map_pins,map_config,playersRes,mercatoRes]=await Promise.all([
+      const [npcs,sessions,factions,locations,timeline,map_pins,map_config,playersRes,mercatoRes,guildRulesRes]=await Promise.all([
         supabase.from("npcs").select("*").order("created_at",{ascending:false}),
         supabase.from("sessions").select("*").order("created_at",{ascending:false}),
         supabase.from("factions").select("*").order("created_at",{ascending:false}),
@@ -2883,6 +2903,7 @@ export default function App(){
         supabase.from("map_config").select("*").order("id"),
         supabase.from("player_characters").select("*").order("name"),
         supabase.from("mercato").select("*").order("name"),
+        supabase.from("guild_rules").select("*").limit(1),
       ]);
       const bestiary = await supabase.from("bestiary").select("id,name,type,challenge_rating,hp,description,habitat,comportamento,curiosita,attacks,img_url,unlocked").order("name");
       const parsed=(playersRes.data||[]).map(p=>{
@@ -2901,6 +2922,7 @@ export default function App(){
         npc:npcs.data||[],sessioni:sessions.data||[],gilda:(factions.data||[]).filter(f=>f.tipo==="gilda"||(!f.tipo&&false)),
         fazioni:(factions.data||[]).filter(f=>f.tipo!=="gilda"),mondo:locations.data||[],cronologia:timeline.data||[],map_pins:map_pins.data||[],map_config:map_config.data?.[0]||null,
         bestiario:bestiary.data||[],mercato:mercatoRes.data||[],
+        guildRulesText:guildRulesRes.data?.[0]?.text||"", guildRulesId:guildRulesRes.data?.[0]?.id||null,
       }));
     }catch(e){console.error(e);}
     setLoading(false);
@@ -3026,6 +3048,9 @@ export default function App(){
             <div style={{fontFamily:"'Cinzel',serif",fontSize:18,fontWeight:700,color:C.gold,textShadow:`0 0 24px ${C.goldGlow}`}}>La Gilda</div>
             <div style={{fontSize:10,fontWeight:600,letterSpacing:".2em",textTransform:"uppercase",color:C.textMuted,marginTop:4}}>Fratellanza & Alleanze</div>
           </div>
+          <div style={{textAlign:"right",marginBottom:12}}>
+            <Btn onClick={()=>{setGuildRulesDraft(data.guildRulesText||"");setGuildRulesEdit(false);setGuildRulesOpen(true);}}>📜 Regole della Gilda</Btn>
+          </div>
           {!data.gilda.length?<EmptyState msg="Nessun gruppo nella gilda ancora"/>:
             gradiDM.map(grado=>{
               const gruppi=sortedGilda.filter(g=>g.grado===grado);
@@ -3054,6 +3079,33 @@ export default function App(){
               </div>;
             })
           }
+          {guildRulesOpen&&<div onClick={()=>setGuildRulesOpen(false)} style={{position:"fixed",inset:0,zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:20,background:"rgba(0,0,0,.8)",backdropFilter:"blur(4px)"}}>
+            <div onClick={e=>e.stopPropagation()} style={{position:"relative",background:C.bg2,borderRadius:20,border:`1px solid ${C.border2}`,width:"100%",maxWidth:640,maxHeight:"85vh",overflowY:"auto",boxShadow:`0 0 60px ${C.goldGlow}`}}>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"18px 20px 12px"}}>
+                <span style={{fontFamily:"'Cinzel',serif",fontSize:20,fontWeight:700,color:C.gold}}>📜 Regole della Gilda</span>
+                <button onClick={()=>setGuildRulesOpen(false)} style={{background:"none",border:"none",fontSize:22,color:C.textDim,cursor:"pointer"}}>✕</button>
+              </div>
+              <div style={{padding:"0 20px 24px"}}>
+                {guildRulesEdit
+                  ?<textarea value={guildRulesDraft} onChange={e=>setGuildRulesDraft(e.target.value)} style={{width:"100%",minHeight:280,resize:"vertical",background:C.bg3,border:`1px solid ${C.border2}`,borderRadius:8,padding:"10px 12px",color:C.text,fontSize:14,lineHeight:1.7}}/>
+                  :<div style={{fontSize:14,color:C.text,lineHeight:1.75,whiteSpace:"pre-wrap"}}>{data.guildRulesText||"Nessuna regola ancora inserita."}</div>}
+                <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:16}}>
+                  {guildRulesEdit?<>
+                    <Btn onClick={()=>setGuildRulesEdit(false)}>Annulla</Btn>
+                    <Btn primary disabled={guildRulesSaving} onClick={async()=>{
+                      setGuildRulesSaving(true);
+                      const {error} = data.guildRulesId
+                        ? await supabase.from("guild_rules").update({text:guildRulesDraft,updated_at:new Date().toISOString()}).eq("id",data.guildRulesId)
+                        : await supabase.from("guild_rules").insert({text:guildRulesDraft});
+                      setGuildRulesSaving(false);
+                      if(error){ alert("Errore: "+error.message); return; }
+                      setGuildRulesEdit(false); loadAll();
+                    }}>{guildRulesSaving?"Salvo...":"Salva"}</Btn>
+                  </>:<Btn onClick={()=>setGuildRulesEdit(true)}>✏ Modifica</Btn>}
+                </div>
+              </div>
+            </div>
+          </div>}
         </div>;
       }
       case "fazioni":return !data.fazioni.length?<EmptyState msg="Nessuna fazione ancora"/>:
