@@ -366,15 +366,15 @@ function PlayerView({user, onLogout}){
     {v:"sessioni",icon:"📜",label:"Sessioni"},
     {v:"gilda",icon:"🏴",label:"Gilda"},
     {v:"npc",icon:"👤",label:"NPC"},
-    {v:"mappa",icon:"🗺️",label:"Mappa"},
     {v:"fazioni",icon:"⚔️",label:"Fazioni"},
-    {v:"mondo",icon:"🌍",label:"Fogli del Mondo"},
+    {v:"mappa",icon:"🗺️",label:"Mappa"},
     {v:"cronologia",icon:"⏳",label:"Cronologia"},
   ];
   const partyNavItems=[
+    {v:"loot",icon:"💰",label:"Loot di Gruppo"},
+    {v:"mondo",icon:"🌍",label:"Fogli del Mondo"},
     {v:"attivita",icon:"📋",label:"Attività Fuori Servizio"},
     {v:"creazione",icon:"🔨",label:"Creazione"},
-    {v:"loot",icon:"💰",label:"Loot di Gruppo"},
   ];
 
   if(loading) return <div style={{minHeight:"100vh",background:C.bg,display:"flex",alignItems:"center",justifyContent:"center",color:C.textDim,fontSize:14}}>Caricamento...</div>;
@@ -3253,9 +3253,8 @@ export default function App(){
 
   const navItems=[
     {v:"sessioni",icon:"📜",label:"Sessioni"},{v:"gilda",icon:"🏴",label:"Gilda"},
-    {v:"npc",icon:"👤",label:"NPC"},{v:"mappa",icon:"🗺️",label:"Mappa"},
-    {v:"fazioni",icon:"⚔️",label:"Fazioni"},{v:"mondo",icon:"🌍",label:"Fogli del Mondo"},
-    {v:"cronologia",icon:"⏳",label:"Cronologia"},
+    {v:"npc",icon:"👤",label:"NPC"},{v:"fazioni",icon:"⚔️",label:"Fazioni"},
+    {v:"mappa",icon:"🗺️",label:"Mappa"},{v:"cronologia",icon:"⏳",label:"Cronologia"},
   ];
 
   return <div style={{display:"flex",height:"100vh",overflow:"hidden",background:C.bg,color:C.text,fontFamily:"'Inter',sans-serif"}}>
@@ -3282,14 +3281,17 @@ export default function App(){
       <div style={{height:1,background:C.border,margin:"6px 18px"}}/>
       <div style={{padding:"14px 0 6px"}}>
         <div style={{fontSize:10,fontWeight:600,letterSpacing:".18em",textTransform:"uppercase",color:C.textMuted,padding:"0 18px 6px"}}>Party</div>
+        <div onClick={()=>nav("loot")} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 18px",cursor:"pointer",fontSize:13,color:view==="loot"?C.gold:C.textDim,background:view==="loot"?`rgba(212,160,23,.08)`:"transparent",borderLeft:`2px solid ${view==="loot"?C.gold:"transparent"}`}}>
+          <span style={{fontSize:14,width:18,textAlign:"center"}}>💰</span>Loot di Gruppo
+        </div>
+        <div onClick={()=>nav("mondo")} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 18px",cursor:"pointer",fontSize:13,color:view==="mondo"?C.gold:C.textDim,background:view==="mondo"?`rgba(212,160,23,.08)`:"transparent",borderLeft:`2px solid ${view==="mondo"?C.gold:"transparent"}`}}>
+          <span style={{fontSize:14,width:18,textAlign:"center"}}>🌍</span>Fogli del Mondo
+        </div>
         <div onClick={()=>nav("attivita")} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 18px",cursor:"pointer",fontSize:13,color:view==="attivita"?C.gold:C.textDim,background:view==="attivita"?`rgba(212,160,23,.08)`:"transparent",borderLeft:`2px solid ${view==="attivita"?C.gold:"transparent"}`}}>
           <span style={{fontSize:14,width:18,textAlign:"center"}}>📋</span>Attività Fuori Servizio
         </div>
         <div onClick={()=>nav("creazione")} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 18px",cursor:"pointer",fontSize:13,color:view==="creazione"?C.gold:C.textDim,background:view==="creazione"?`rgba(212,160,23,.08)`:"transparent",borderLeft:`2px solid ${view==="creazione"?C.gold:"transparent"}`}}>
           <span style={{fontSize:14,width:18,textAlign:"center"}}>🔨</span>Creazione
-        </div>
-        <div onClick={()=>nav("loot")} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 18px",cursor:"pointer",fontSize:13,color:view==="loot"?C.gold:C.textDim,background:view==="loot"?`rgba(212,160,23,.08)`:"transparent",borderLeft:`2px solid ${view==="loot"?C.gold:"transparent"}`}}>
-          <span style={{fontSize:14,width:18,textAlign:"center"}}>💰</span>Loot di Gruppo
         </div>
       </div>
       {players.length>0&&<>
